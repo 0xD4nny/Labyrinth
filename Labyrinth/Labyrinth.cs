@@ -1,6 +1,7 @@
 ﻿namespace Labyrinth;
 
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 
@@ -8,6 +9,7 @@ class Labyrinth
 {
     private readonly int _width;
     private readonly int _height;
+    private bool tInRange = false;// atm not settet
 
     private readonly TcpClient _client;
 
@@ -64,14 +66,25 @@ class Labyrinth
         {
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
-            //Wir sind aktuell an dem Punkt, dass wir das gewünschte Target bekommen,
-            //allerdings ist unser PathFindingAlgorithm noch zu schlecht und findet den weg nicht.
+
+            if (tInRange)
+            {
+                Location TLocation = GetTarget();
+                List<(int x, int y)> Path2 = Pathfinding(TLocation);
+                while (PathFilter(Path2)) ;
+                Queue<string> QueueToT = ParseCordsToDirs(Path2);
+                SendBotCommands(QueueToT);
+
+                GetServerResponse();
+                break;
+            }
+
 
             Location Target = GetTarget();
 
-            Queue<(int X, int Y)> ListFromStartToTarget = PathFindingAlgorithm(Target);
-
-            Queue<string> DirectionStringList = ParseCordsToDirs(ListFromStartToTarget);
+            List<(int x, int y)> Path = Pathfinding(Target);
+            while (PathFilter(Path)) ;
+            Queue<string> DirectionStringList = ParseCordsToDirs(Path);
 
             SendBotCommands(DirectionStringList);
 
@@ -271,10 +284,13 @@ class Labyrinth
     private void PrintMap()
     {
         //Just for debug//
-        for (int y = 0; y < _height + 10; y++)
-            for (int x = 0; x < _width + 10; x++)
+        for (int y = 0; y < _height +10 ; y++)
+            for (int x = 0; x < _width +10; x++)
                 if (_reachedMapAreas[y, x] is true)
                     _mapArray[y, x] = '*';
+
+        if (_currentPosition is null)
+            throw new NullReferenceException("_currentPosition can't be null.");
 
         _mapArray[_currentPosition.Y, _currentPosition.X] = 'P';
 
@@ -305,7 +321,12 @@ class Labyrinth
         stringBuilder.Clear();
     }
 
-    private void UpdateGraph()
+    #endregion
+
+
+    #region Bot Algorithm
+    private readonly Dictionary<(int, int), Location> _graph = new Dictionary<(int, int), Location>();
+    public void UpdateGraph()
     {
         if (_currentPosition is null)
             throw new NullReferenceException("_currentPosition can't be null. Disconnected?");
@@ -326,12 +347,6 @@ class Labyrinth
             }
         }
     }
-    #endregion
-
-
-    #region Bot Algorithm
-    private readonly LinkedList<(int, int)> _reached = new LinkedList<(int, int)>();
-    private readonly Dictionary<(int, int), Location> _graph = new Dictionary<(int, int), Location>();
 
     /// <summary>
     /// This method iterates along the edge of the field of view once and returns the first empty field found at the edge.
@@ -442,72 +457,91 @@ class Labyrinth
         return false;
     }
 
-    //private GBFS(Location target)
-    //{
-    //    PriorityQueue<Location,double> queue = new PriorityQueue<Location,double>();
-    //    Queue<(int x, int y)> path = new Queue<(int x, int y)>();
-    //    HashSet< int x, int y)> _reached = new HashSet<(int x, int y)>();
-    //}
 
     /// <summary>
     /// This pathfinding algorithm method returns a queue with the (int X, int Y) from the start point to the target point.
     /// </summary>
-    private Queue<(int X, int Y)> PathFindingAlgorithm(Location target)// Todo: Debug?
+    public List<(int X, int Y)> Pathfinding(Location target)
     {
-        if (_currentPosition is null)
-            throw new NullReferenceException(nameof(_currentPosition));
+        HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
+        LinkedList<(int X, int Y)> breadkrumel = new LinkedList<(int X, int Y)>();
+        List<(int X, int Y)> path = new List<(int X, int Y)>();
+        Queue<Location> queue = new Queue<Location>();
 
-        if (target is null)
-            throw new ArgumentNullException(nameof(target));
+        Location current = new Location(_currentPosition.X, _currentPosition.Y, _mapArray);
+        queue.Enqueue(current);
+        path.Add((current.X, current.Y));
+        breadkrumel.AddFirst((current.X, current.Y));
 
-        Queue<(int X, int Y)> path = new Queue<(int X, int Y)>();
-        Queue<(int X, int Y)> queue = new Queue<(int X, int Y)>();
-        Dictionary<(int X, int Y), bool> reached = new Dictionary<(int X, int Y), bool>();
-
-        queue.Enqueue((_currentPosition.X, _currentPosition.Y));
-        path.Enqueue((_currentPosition.X, _currentPosition.Y));
-        reached[(_currentPosition.X, _currentPosition.Y)] = true;
-        (int X, int Y) current;
-
-        do
+        while ((current.X, current.Y) != (target.X, target.Y))
         {
             current = queue.Dequeue();
+            reached.Add((current.X, current.Y));
 
             for (int i = 0; i < 4; i++)
-                if (_graph[(current.X, current.Y)].Neighbors[i].IsReachable &&
-                !reached.ContainsKey((_graph[(current.X, current.Y)].Neighbors[i].X, _graph[(current.X, current.Y)].Neighbors[i].Y)))
+                if (!reached.Contains((current.Neighbors[i].X, current.Neighbors[i].Y)) && current.Neighbors[i].IsReachable)
                 {
-                    queue.Enqueue((_graph[(current.X, current.Y)].Neighbors[i].X, _graph[(current.X, current.Y)].Neighbors[i].Y));
-                    path.Enqueue((_graph[(current.X, current.Y)].Neighbors[i].X, _graph[(current.X, current.Y)].Neighbors[i].Y));
-                    reached[(_graph[(current.X, current.Y)].Neighbors[i].X, _graph[(current.X, current.Y)].Neighbors[i].Y)] = true;
+                    breadkrumel.AddFirst((current.Neighbors[i].X, current.Neighbors[i].Y));
+                    queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, _mapArray));
+                    path.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
+                    break;
                 }
 
-        } while ((current.X, current.Y) != (target.X, target.Y));
-
-        if (path.Count < 0)
-            throw new Exception("Pathfinding has failed.");
-
+            if (queue.Count == 0)
+            {
+                (int X, int Y) = breadkrumel.First.Next.Value;
+                breadkrumel.RemoveFirst();
+                queue.Enqueue(new Location(X, Y, _mapArray));
+                path.Add((X, Y));
+            }
+        }
         return path;
+    }
+
+    public bool PathFilter(List<(int x, int y)> path)
+    {
+        List<(int index, int x, int y)> indexes = new List<(int index, int x, int y)>();
+        List<(int index, int x, int y)> indexes2 = new List<(int index, int x, int y)>();
+
+        // whit this loop, we search doublicates;
+        for (int i = 0; i < path.Count; i++)
+            for (int j = 1 + i; j < path.Count; j++)
+                if (path[i] == path[j])
+                    indexes.Add((i, path[i].x, path[i].y));
+
+        // with this loop, we search how much doublicates ever doublicate has.
+        for (int i = 0; i < indexes.Count; i++)
+            for (int j = 0; j < path.Count; j++)
+                if (path[j] == (indexes[i].x, indexes[i].y))
+                    indexes2.Add((j, path[j].x, path[j].y));
+
+        if (indexes2.Count <= 0)
+            return false;
+
+        path.RemoveRange(indexes2[0].index, indexes2[1].index - indexes2[0].index);
+
+        return true;
     }
 
     /// <summary>
     /// This methode is to parse the result of the pathfinding method in strings for the responses.
     /// </summary>
-    private Queue<string> ParseCordsToDirs(Queue<(int X, int Y)> cordsQueue)
+    private Queue<string> ParseCordsToDirs(List<(int X, int Y)> path)
     {
         string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
         Queue<string> dirs = new Queue<string>();
-        (int x, int y) current = cordsQueue.Dequeue();
+        (int x, int y) current = path[0];
+        path.Remove(current);
 
-        while (cordsQueue.Count > 0)
+        while (path.Count > 0)
         {
-            (int x, int y) next = cordsQueue.Dequeue();
+            (int x, int y) next = path[0];
+            path.Remove(next);
             for (int i = 0; i < 4; i++)
             {
                 if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
                 {
                     _reachedMapAreas[next.y, next.x] = true;
-                    _reached.AddFirst((next.y, next.y));
                     dirs.Enqueue(_dirs[i]);
                     current = next;
                 }
@@ -516,13 +550,6 @@ class Labyrinth
         return dirs;
     }
 
-    /// <summary>
-    /// In this method, we use the Euclidean distance formula to get the heuristic from the start point to the target point.
-    /// </summary>
-    private double GetHeristic(Location current, Location target)
-    {
-        return Math.Sqrt(Math.Pow(current.X - target.X, 2) + Math.Pow(current.Y - target.Y, 2));
-    }
     #endregion
 
 }
@@ -530,3 +557,12 @@ class Labyrinth
 //"Right = X++;
 //"LEFT" = X--;
 //"UP" = Y--;
+
+
+///// <summary>
+///// In this method, we use the Euclidean distance formula to get the heuristic from the start point to the target point.
+///// </summary>
+//private double GetHeristic(Location current, Location target)
+//{
+//    return Math.Sqrt(Math.Pow(current.X - target.X, 2) + Math.Pow(current.Y - target.Y, 2));
+//}

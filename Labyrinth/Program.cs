@@ -4,7 +4,7 @@ class Program
 {
     static void Main()
     {
-        Labyrinth Labyrinth = new Labyrinth(32, 32);
+        Labyrinth Labyrinth = new Labyrinth(35, 35);
         Labyrinth.GameLoop();
     }
 }
