@@ -12,7 +12,8 @@
     {
         public readonly int X;
         public readonly int Y;
-        private readonly int _mapLength;
+        private readonly int _mapWidth;
+        private readonly int _mapHeight;
 
         public readonly (int X, int Y, bool IsReachable)[] Neighbors = new (int X, int Y, bool IsReachable)[4];
 
@@ -21,11 +22,11 @@
 
             X = x;
             Y = y;
-            _mapLength = map.GetLength(0);
-
+            _mapWidth = map.Length / map.GetLength(0);
+            _mapHeight = map.GetLength(0);
             for (int i = 0; i < 4; i++)
             {
-                if (x + Direction.DirX[i] < _mapLength && y + Direction.DirY[i] < _mapLength && x + Direction.DirX[i] > 0 && y + Direction.DirY[i] > 0)
+                if (x + Direction.DirX[i] < _mapWidth && y + Direction.DirY[i] < _mapHeight && x + Direction.DirX[i] > 0 && y + Direction.DirY[i] > 0)
                 {
                     if (map[y + Direction.DirY[i], x + Direction.DirX[i]] is not 'W' &&
                         map[y + Direction.DirY[i], x + Direction.DirX[i]] is not '\0' &&

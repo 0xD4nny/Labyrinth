@@ -9,7 +9,6 @@ class Labyrinth
 {
     private readonly int _width;
     private readonly int _height;
-    private bool tInRange = false;// atm not settet
 
     private readonly TcpClient _client;
 
@@ -33,8 +32,8 @@ class Labyrinth
         _writer.AutoFlush = false;
 
 
-        _mapArray = new char[width + 10, height + 10];
-        _reachedMapAreas = new bool[width + 10, height + 10];
+        _mapArray = new char[height + 10, width + 10];
+        _reachedMapAreas = new bool[height + 10, width + 10];
 
         InitializeGame();
 
@@ -67,31 +66,20 @@ class Labyrinth
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
 
-            if (tInRange)
-            {
-                Location TLocation = GetTarget();
-                List<(int x, int y)> Path2 = Pathfinding(TLocation);
-                while (PathFilter(Path2)) ;
-                Queue<string> QueueToT = ParseCordsToDirs(Path2);
-                SendBotCommands(QueueToT);
-
-                GetServerResponse();
-                break;
-            }
-
-
             Location Target = GetTarget();
-
             List<(int x, int y)> Path = Pathfinding(Target);
             while (PathFilter(Path)) ;
             Queue<string> DirectionStringList = ParseCordsToDirs(Path);
-
             SendBotCommands(DirectionStringList);
 
             GetServerResponse();
 
             ProcessResponse();
         }
+        Enter();
+        ServerResponse? response;
+        response = ServerResponse.ParseResponse(_reader.ReadLine());
+        Console.WriteLine(response.Message);
     }
 
 
@@ -320,7 +308,6 @@ class Labyrinth
         Console.WriteLine(stringBuilder.ToString());
         stringBuilder.Clear();
     }
-
     #endregion
 
 
@@ -394,37 +381,39 @@ class Labyrinth
 
 
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-                return new Location(searchPointX, searchPointY, _mapArray);
+        //for (int i = 0; i < 10; i++)
+        //{
+        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
+        //        return new Location(searchPointX, searchPointY, _mapArray);
 
-            searchPointX--;
-        }
+        //    searchPointX--;
+        //}
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-                return new Location(searchPointX, searchPointY, _mapArray);
+        //for (int i = 0; i < 10; i++)
+        //{
+        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
+        //        return new Location(searchPointX, searchPointY, _mapArray);
 
-            searchPointY--;
-        }
+        //    searchPointY--;
+        //}
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-                return new Location(searchPointX, searchPointY, _mapArray);
+        //for (int i = 0; i < 10; i++)
+        //{
+        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
+        //        return new Location(searchPointX, searchPointY, _mapArray);
 
-            searchPointX++;
-        }
+        //    searchPointX++;
+        //}
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-                return new Location(searchPointX, searchPointY, _mapArray);
+        //for (int i = 0; i < 10; i++)
+        //{
+        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
+        //        return new Location(searchPointX, searchPointY, _mapArray);
 
-            searchPointY++;
-        }
+        //    searchPointY++;
+        //}
+
+
 
 
         throw new Exception("No Target found");
@@ -457,26 +446,32 @@ class Labyrinth
         return false;
     }
 
-
     /// <summary>
     /// This pathfinding algorithm method returns a queue with the (int X, int Y) from the start point to the target point.
     /// </summary>
     public List<(int X, int Y)> Pathfinding(Location target)
     {
-        HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
         LinkedList<(int X, int Y)> breadkrumel = new LinkedList<(int X, int Y)>();
+        HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
         List<(int X, int Y)> path = new List<(int X, int Y)>();
         Queue<Location> queue = new Queue<Location>();
 
         Location current = new Location(_currentPosition.X, _currentPosition.Y, _mapArray);
+
         queue.Enqueue(current);
         path.Add((current.X, current.Y));
         breadkrumel.AddFirst((current.X, current.Y));
 
-        while ((current.X, current.Y) != (target.X, target.Y))
+        while ((current.X, current.Y) != (target.X, target.Y) || _mapArray[current.Y, current.X] is 'T')
         {
             current = queue.Dequeue();
             reached.Add((current.X, current.Y));
+
+            if(_mapArray[current.Y, current.X] is 'T')
+            {
+                _gameWon = true;
+                break;
+            }
 
             for (int i = 0; i < 4; i++)
                 if (!reached.Contains((current.Neighbors[i].X, current.Neighbors[i].Y)) && current.Neighbors[i].IsReachable)
@@ -498,6 +493,9 @@ class Labyrinth
         return path;
     }
 
+    /// <summary>
+    /// This method filters out dead ends from the path, based on their doublicates.
+    /// </summary>
     public bool PathFilter(List<(int x, int y)> path)
     {
         List<(int index, int x, int y)> indexes = new List<(int index, int x, int y)>();
@@ -549,7 +547,6 @@ class Labyrinth
         }
         return dirs;
     }
-
     #endregion
 
 }
@@ -564,5 +561,5 @@ class Labyrinth
 ///// </summary>
 //private double GetHeristic(Location current, Location target)
 //{
-//    return Math.Sqrt(Math.Pow(current.X - target.X, 2) + Math.Pow(current.Y - target.Y, 2));
+//    return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
 //}
