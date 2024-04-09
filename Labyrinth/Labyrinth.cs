@@ -69,7 +69,7 @@ class Labyrinth
             Location Target = GetTarget();
             List<(int x, int y)> Path = Pathfinding(Target);
             while (PathFilter(Path)) ;
-            Queue<string> DirectionStringList = ParseCordsToDirs(Path);
+            List<string> DirectionStringList = ParseCordsToDirs(Path);
             SendBotCommands(DirectionStringList);
 
             GetServerResponse();
@@ -112,12 +112,12 @@ class Labyrinth
         }
     }
 
-    private void SendBotCommands(Queue<string> commands)
+    private void SendBotCommands(List<string> commands)
     {
         int count = commands.Count;
 
         if (count < 1)
-            throw new Exception("The overgiven Queue \"paths\" is empty");
+            throw new Exception("The overgiven list \"commands\" is empty");
 
         foreach (string cmd in commands)
         {
@@ -272,10 +272,10 @@ class Labyrinth
     private void PrintMap()
     {
         //Just for debug//
-        for (int y = 0; y < _height +10 ; y++)
-            for (int x = 0; x < _width +10; x++)
-                if (_reachedMapAreas[y, x] is true)
-                    _mapArray[y, x] = '*';
+        for (int y = 0; y < _height + 10; y++)
+                for (int x = 0; x < _width + 10; x++)
+                    if (_reachedMapAreas[y, x] is true)
+                        _mapArray[y, x] = '*';
 
         if (_currentPosition is null)
             throw new NullReferenceException("_currentPosition can't be null.");
@@ -312,7 +312,9 @@ class Labyrinth
 
 
     #region Bot Algorithm
-    private readonly Dictionary<(int, int), Location> _graph = new Dictionary<(int, int), Location>();
+    private readonly Dictionary<(int x, int y), Location> _graph = new Dictionary<(int x, int y), Location>();
+    private readonly Stack<(int X, int Y)> _breadKrumelPath = new Stack<(int X, int Y)>();
+    private (bool tDetected, int x, int y)_target;
     public void UpdateGraph()
     {
         if (_currentPosition is null)
@@ -347,9 +349,12 @@ class Labyrinth
         int searchPointX = _currentPosition.X + 5;
         int searchPointY = _currentPosition.Y + 5;
 
+        if (_target.tDetected && IsReachable(new Location(_target.x, _target.y, _mapArray)))
+            return new Location(_target.x, _target.y, _mapArray);
+
         for (int i = 0; i < 10; i++)
         {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is not true)
+            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
                 return new Location(searchPointX, searchPointY, _mapArray);
 
             searchPointX--;
@@ -357,7 +362,7 @@ class Labyrinth
 
         for (int i = 0; i < 10; i++)
         {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is not true)
+            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
                 return new Location(searchPointX, searchPointY, _mapArray);
 
             searchPointY--;
@@ -365,7 +370,7 @@ class Labyrinth
 
         for (int i = 0; i < 10; i++)
         {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is not true)
+            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
                 return new Location(searchPointX, searchPointY, _mapArray);
 
             searchPointX++;
@@ -373,51 +378,20 @@ class Labyrinth
 
         for (int i = 0; i < 10; i++)
         {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is not true)
+            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
                 return new Location(searchPointX, searchPointY, _mapArray);
 
             searchPointY++;
         }
 
-
-
-        //for (int i = 0; i < 10; i++)
-        //{
-        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-        //        return new Location(searchPointX, searchPointY, _mapArray);
-
-        //    searchPointX--;
-        //}
-
-        //for (int i = 0; i < 10; i++)
-        //{
-        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-        //        return new Location(searchPointX, searchPointY, _mapArray);
-
-        //    searchPointY--;
-        //}
-
-        //for (int i = 0; i < 10; i++)
-        //{
-        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-        //        return new Location(searchPointX, searchPointY, _mapArray);
-
-        //    searchPointX++;
-        //}
-
-        //for (int i = 0; i < 10; i++)
-        //{
-        //    if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)))
-        //        return new Location(searchPointX, searchPointY, _mapArray);
-
-        //    searchPointY++;
-        //}
-
-
-
+        // Ein Brotkrümelpfad könnte auch hier der waytogo sein, um wieder solange zurück zu laufen bis wir wieder ein undefine field finden.
+        _breadKrumelPath.Pop();
+        (int x, int y) krumel = _breadKrumelPath.Pop();
+        return new Location(krumel.x, krumel.y, _mapArray);
 
         throw new Exception("No Target found");
     }
+    
 
     /// <summary>
     /// This method helps getTarget determine if it is reachable.
@@ -440,6 +414,10 @@ class Labyrinth
                     queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, _mapArray));
                     reached.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
                 }
+            if (_mapArray[current.Y, current.X] is 'T')
+                _target = (true, current.Y, current.X);
+
+
             if (_mapArray[current.Y, current.X] is 'P')
                 return true;
         }
@@ -489,7 +467,9 @@ class Labyrinth
                 queue.Enqueue(new Location(X, Y, _mapArray));
                 path.Add((X, Y));
             }
+
         }
+        path.Add((target.X, target.Y));
         return path;
     }
 
@@ -524,12 +504,15 @@ class Labyrinth
     /// <summary>
     /// This methode is to parse the result of the pathfinding method in strings for the responses.
     /// </summary>
-    private Queue<string> ParseCordsToDirs(List<(int X, int Y)> path)
+    private List<string> ParseCordsToDirs(List<(int X, int Y)> path)
     {
         string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
-        Queue<string> dirs = new Queue<string>();
+        List<string> dirs = new List<string>();
         (int x, int y) current = path[0];
+
         path.Remove(current);
+        _reachedMapAreas[current.y, current.x] = true;
+        _breadKrumelPath.Push((current.x, current.y));
 
         while (path.Count > 0)
         {
@@ -539,8 +522,9 @@ class Labyrinth
             {
                 if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
                 {
+                    _breadKrumelPath.Push((next.x, next.y));
                     _reachedMapAreas[next.y, next.x] = true;
-                    dirs.Enqueue(_dirs[i]);
+                    dirs.Add(_dirs[i]);
                     current = next;
                 }
             }
