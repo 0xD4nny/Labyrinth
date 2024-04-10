@@ -16,7 +16,7 @@
         {
             Location target = GetTarget(currentPosition, map, reachedLocations);
             List<(int x, int y)> Path = Pathfinding(target, currentPosition, map, ref gameWon);
-            while (PathFilter(Path)) ;
+            while (PathFilter(Path));
             return ParseCordsToDirs(Path, reachedLocations);
         }
 
@@ -73,6 +73,8 @@
             return new Location(krumel.x, krumel.y, map);
 
             throw new Exception("No Target found");
+
+
         }
 
         /// <summary>

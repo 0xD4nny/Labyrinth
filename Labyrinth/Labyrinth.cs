@@ -80,8 +80,7 @@ class Labyrinth
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
 
-            List<string> Path = _botAlgorithm.Run(_currentPosition, _mapArray, _reachedLocations, _gameWon);
-            SendBotCommands(Path);
+            SendBotCommands(_botAlgorithm.Run(_currentPosition, _mapArray, _reachedLocations, _gameWon));
 
             GetServerResponse();
 
@@ -253,8 +252,6 @@ class Labyrinth
         UpdateMap();
 
         PrintMap();
-
-        UpdateCoordinates(); // We call this Method a second time to get the informations from map to(infos like 'W')
 
         UpdateGraph();
     }
