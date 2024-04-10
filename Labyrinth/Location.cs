@@ -24,6 +24,7 @@
             Y = y;
             _mapWidth = map.Length / map.GetLength(0);
             _mapHeight = map.GetLength(0);
+
             for (int i = 0; i < 4; i++)
             {
                 if (x + Direction.DirX[i] < _mapWidth && y + Direction.DirY[i] < _mapHeight && x + Direction.DirX[i] > 0 && y + Direction.DirY[i] > 0)

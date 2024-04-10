@@ -16,7 +16,9 @@ class Labyrinth
     private readonly StreamWriter _writer;
 
     private readonly char[,] _mapArray;
-    private readonly bool[,] _reachedMapAreas;
+    private readonly bool[,] _reachedLocations;
+
+    private readonly BotAlgorithm _botAlgorithm;
 
     public Labyrinth(int width, int height)
     {
@@ -33,15 +35,21 @@ class Labyrinth
 
 
         _mapArray = new char[height + 10, width + 10];
-        _reachedMapAreas = new bool[height + 10, width + 10];
+        _reachedLocations = new bool[height + 10, width + 10];
+
 
         InitializeGame();
+
+        if (_currentPosition is null)
+            throw new NullReferenceException("_currentPossition can't be null.");
+
+        _botAlgorithm = new BotAlgorithm();
+        UpdateGraph();
 
     }
 
     private void InitializeGame()
     {
-
         _writer.WriteLine($"WIDTH {_width}\nHEIGHT {_height}\nDEPTH 1\nSTART");
         _writer.Flush();
 
@@ -56,7 +64,13 @@ class Labyrinth
         Print(); // To get a Map-Message
 
         GetServerResponse();
-        ProcessResponse();
+        UpdateCoordinates();
+
+        UpdateMap();
+
+        PrintMap();
+
+        UpdateCoordinates(); // We call this Method a second time to get the informations from map to(infos like 'W') 
     }
 
     public void GameLoop()
@@ -66,16 +80,14 @@ class Labyrinth
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
 
-            Location Target = GetTarget();
-            List<(int x, int y)> Path = Pathfinding(Target);
-            while (PathFilter(Path)) ;
-            List<string> DirectionStringList = ParseCordsToDirs(Path);
-            SendBotCommands(DirectionStringList);
+            List<string> Path = _botAlgorithm.Run(_currentPosition, _mapArray, _reachedLocations, _gameWon);
+            SendBotCommands(Path);
 
             GetServerResponse();
 
             ProcessResponse();
         }
+
         Enter();
         ServerResponse? response;
         response = ServerResponse.ParseResponse(_reader.ReadLine());
@@ -84,6 +96,9 @@ class Labyrinth
 
 
     #region Commands
+    /// <summary>
+    ///You can use the KeyToString method of the ManualControl class as an argument, to play the game with the Arrow Keys manually.    
+    ///</summary>
     private void SendManualCommand(string KeyToString)
     {
         switch (KeyToString)
@@ -194,7 +209,7 @@ class Labyrinth
 
     #region Get Server Response
     private ServerResponse? _coordinatesMesssage;
-    public readonly ServerResponse[]? _mapMassageArray = new ServerResponse[11];
+    private readonly ServerResponse[]? _mapMassageArray = new ServerResponse[11];
 
     private void GetServerResponse()
     {
@@ -274,7 +289,7 @@ class Labyrinth
         //Just for debug//
         for (int y = 0; y < _height + 10; y++)
                 for (int x = 0; x < _width + 10; x++)
-                    if (_reachedMapAreas[y, x] is true)
+                    if (_reachedLocations[y, x] is true)
                         _mapArray[y, x] = '*';
 
         if (_currentPosition is null)
@@ -308,13 +323,7 @@ class Labyrinth
         Console.WriteLine(stringBuilder.ToString());
         stringBuilder.Clear();
     }
-    #endregion
 
-
-    #region Bot Algorithm
-    private readonly Dictionary<(int x, int y), Location> _graph = new Dictionary<(int x, int y), Location>();
-    private readonly Stack<(int X, int Y)> _breadKrumelPath = new Stack<(int X, int Y)>();
-    private (bool tDetected, int x, int y)_target;
     public void UpdateGraph()
     {
         if (_currentPosition is null)
@@ -331,219 +340,12 @@ class Labyrinth
                 if (currentX < _width + 10 && currentY < _height + 10 && currentX > 0 && currentY > 0)
                 {
                     if (_mapArray[currentY, currentX] is not 'W' && _mapArray[currentY, currentX] is not '\0' && _mapArray[currentY, currentX] is not '.')
-                        _graph[(currentX, currentY)] = new Location(currentX, currentY, _mapArray);
+                        _botAlgorithm.Graph[(currentX, currentY)] = new Location(currentX, currentY, _mapArray);
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// This method iterates along the edge of the field of view once and returns the first empty field found at the edge.
-    /// </summary>
-    private Location GetTarget()
-    {
-        if (_currentPosition is null)
-            throw new NullReferenceException("_currentPosition can't be null. Disconnected?");
-
-        // + 5 to start in corner botton right (Rechts unten gewichtet)
-        int searchPointX = _currentPosition.X + 5;
-        int searchPointY = _currentPosition.Y + 5;
-
-        if (_target.tDetected && IsReachable(new Location(_target.x, _target.y, _mapArray)))
-            return new Location(_target.x, _target.y, _mapArray);
-
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
-                return new Location(searchPointX, searchPointY, _mapArray);
-
-            searchPointX--;
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
-                return new Location(searchPointX, searchPointY, _mapArray);
-
-            searchPointY--;
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
-                return new Location(searchPointX, searchPointY, _mapArray);
-
-            searchPointX++;
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            if (_graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, _mapArray)) && _reachedMapAreas[searchPointY, searchPointX] is false)
-                return new Location(searchPointX, searchPointY, _mapArray);
-
-            searchPointY++;
-        }
-
-        // Ein Brotkrümelpfad könnte auch hier der waytogo sein, um wieder solange zurück zu laufen bis wir wieder ein undefine field finden.
-        _breadKrumelPath.Pop();
-        (int x, int y) krumel = _breadKrumelPath.Pop();
-        return new Location(krumel.x, krumel.y, _mapArray);
-
-        throw new Exception("No Target found");
-    }
-    
-
-    /// <summary>
-    /// This method helps getTarget determine if it is reachable.
-    /// </summary>
-    private bool IsReachable(Location current)
-    {
-        HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
-        Queue<Location> queue = new Queue<Location>();
-
-        queue.Enqueue(current);
-
-        while (queue.Count > 0)
-        {
-            current = queue.Dequeue();
-            reached.Add((current.X, current.Y));
-
-            for (int i = 0; i < 4; i++)
-                if (current.Neighbors[i].IsReachable && !reached.Contains((current.Neighbors[i].X, current.Neighbors[i].Y)))
-                {
-                    queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, _mapArray));
-                    reached.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
-                }
-            if (_mapArray[current.Y, current.X] is 'T')
-                _target = (true, current.Y, current.X);
-
-
-            if (_mapArray[current.Y, current.X] is 'P')
-                return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// This pathfinding algorithm method returns a queue with the (int X, int Y) from the start point to the target point.
-    /// </summary>
-    public List<(int X, int Y)> Pathfinding(Location target)
-    {
-        LinkedList<(int X, int Y)> breadkrumel = new LinkedList<(int X, int Y)>();
-        HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
-        List<(int X, int Y)> path = new List<(int X, int Y)>();
-        Queue<Location> queue = new Queue<Location>();
-
-        Location current = new Location(_currentPosition.X, _currentPosition.Y, _mapArray);
-
-        queue.Enqueue(current);
-        path.Add((current.X, current.Y));
-        breadkrumel.AddFirst((current.X, current.Y));
-
-        while ((current.X, current.Y) != (target.X, target.Y) || _mapArray[current.Y, current.X] is 'T')
-        {
-            current = queue.Dequeue();
-            reached.Add((current.X, current.Y));
-
-            if(_mapArray[current.Y, current.X] is 'T')
-            {
-                _gameWon = true;
-                break;
-            }
-
-            for (int i = 0; i < 4; i++)
-                if (!reached.Contains((current.Neighbors[i].X, current.Neighbors[i].Y)) && current.Neighbors[i].IsReachable)
-                {
-                    breadkrumel.AddFirst((current.Neighbors[i].X, current.Neighbors[i].Y));
-                    queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, _mapArray));
-                    path.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
-                    break;
-                }
-
-            if (queue.Count == 0)
-            {
-                (int X, int Y) = breadkrumel.First.Next.Value;
-                breadkrumel.RemoveFirst();
-                queue.Enqueue(new Location(X, Y, _mapArray));
-                path.Add((X, Y));
-            }
-
-        }
-        path.Add((target.X, target.Y));
-        return path;
-    }
-
-    /// <summary>
-    /// This method filters out dead ends from the path, based on their doublicates.
-    /// </summary>
-    public bool PathFilter(List<(int x, int y)> path)
-    {
-        List<(int index, int x, int y)> indexes = new List<(int index, int x, int y)>();
-        List<(int index, int x, int y)> indexes2 = new List<(int index, int x, int y)>();
-
-        // whit this loop, we search doublicates;
-        for (int i = 0; i < path.Count; i++)
-            for (int j = 1 + i; j < path.Count; j++)
-                if (path[i] == path[j])
-                    indexes.Add((i, path[i].x, path[i].y));
-
-        // with this loop, we search how much doublicates ever doublicate has.
-        for (int i = 0; i < indexes.Count; i++)
-            for (int j = 0; j < path.Count; j++)
-                if (path[j] == (indexes[i].x, indexes[i].y))
-                    indexes2.Add((j, path[j].x, path[j].y));
-
-        if (indexes2.Count <= 0)
-            return false;
-
-        path.RemoveRange(indexes2[0].index, indexes2[1].index - indexes2[0].index);
-
-        return true;
-    }
-
-    /// <summary>
-    /// This methode is to parse the result of the pathfinding method in strings for the responses.
-    /// </summary>
-    private List<string> ParseCordsToDirs(List<(int X, int Y)> path)
-    {
-        string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
-        List<string> dirs = new List<string>();
-        (int x, int y) current = path[0];
-
-        path.Remove(current);
-        _reachedMapAreas[current.y, current.x] = true;
-        _breadKrumelPath.Push((current.x, current.y));
-
-        while (path.Count > 0)
-        {
-            (int x, int y) next = path[0];
-            path.Remove(next);
-            for (int i = 0; i < 4; i++)
-            {
-                if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
-                {
-                    _breadKrumelPath.Push((next.x, next.y));
-                    _reachedMapAreas[next.y, next.x] = true;
-                    dirs.Add(_dirs[i]);
-                    current = next;
-                }
-            }
-        }
-        return dirs;
     }
     #endregion
 
+
 }
-//"DOWN" = Y++;
-//"Right = X++;
-//"LEFT" = X--;
-//"UP" = Y--;
-
-
-///// <summary>
-///// In this method, we use the Euclidean distance formula to get the heuristic from the start point to the target point.
-///// </summary>
-//private double GetHeristic(Location current, Location target)
-//{
-//    return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
-//}
