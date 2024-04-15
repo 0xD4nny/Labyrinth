@@ -10,20 +10,15 @@
     /// </remarks>
     class Location
     {
-        public readonly int X;
-        public readonly int Y;
-        private readonly int _mapWidth;
-        private readonly int _mapHeight;
-
+        public readonly int X, Y;
         public readonly (int X, int Y, bool IsReachable)[] Neighbors = new (int X, int Y, bool IsReachable)[4];
 
         public Location(int x, int y, char[,] map)
         {
-
             X = x;
             Y = y;
-            _mapWidth = map.Length / map.GetLength(0);
-            _mapHeight = map.GetLength(0);
+            int _mapWidth = map.Length / map.GetLength(0);
+            int _mapHeight = map.GetLength(0);
 
             for (int i = 0; i < 4; i++)
             {

@@ -7,18 +7,17 @@ using System.Text;
 
 class Labyrinth
 {
-    private readonly int _width;
-    private readonly int _height;
-
     private readonly TcpClient _client;
 
     private readonly StreamReader _reader;
     private readonly StreamWriter _writer;
 
+    private readonly int _width, _height;
     private readonly char[,] _mapArray;
     private readonly bool[,] _reachedLocations;
 
     private readonly BotAlgorithm _botAlgorithm;
+    private bool _gameWon;
 
     public Labyrinth(int width, int height)
     {
@@ -33,17 +32,16 @@ class Labyrinth
         _client.NoDelay = true;
         _writer.AutoFlush = false;
 
-
         _mapArray = new char[height + 10, width + 10];
         _reachedLocations = new bool[height + 10, width + 10];
 
-
         InitializeGame();
 
-        if (_currentPosition is null)
+        if (_currentLocation is null)
             throw new NullReferenceException("_currentPossition can't be null.");
 
         _botAlgorithm = new BotAlgorithm();
+
         UpdateGraph();
 
     }
@@ -63,14 +61,14 @@ class Labyrinth
         Enter(); // To get a Coordinate-Message
         Print(); // To get a Map-Message
 
-        GetServerResponse();
-        UpdateCoordinates();
+        _reader.ReadLine(); // we dont need the first line, so we read it just out without save.
+        GetCoordinateMessage();
+        GetMapMessages();
 
+        UpdateCurrentLocation();
         UpdateMap();
-
         PrintMap();
-
-        UpdateCoordinates(); // We call this Method a second time to get the informations from map to(infos like 'W') 
+        UpdateCurrentLocation();
     }
 
     public void GameLoop()
@@ -80,53 +78,30 @@ class Labyrinth
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
 
-            SendBotCommands(_botAlgorithm.Run(_currentPosition, _mapArray, _reachedLocations, _gameWon));
+            SendCommands(_botAlgorithm.Run(_currentLocation, _mapArray, _reachedLocations, ref _gameWon));
 
-            GetServerResponse();
+            _reader.ReadLine(); // we dont need the first line, so we read it just out, without saveing.
+            GetCoordinateMessage();
+            GetMapMessages();
 
-            ProcessResponse();
+            UpdateCurrentLocation();
+            UpdateMap();
+            PrintMap();
+            UpdateGraph();
         }
 
         Enter();
-        ServerResponse? response;
-        response = ServerResponse.ParseResponse(_reader.ReadLine());
+        ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
         Console.WriteLine(response.Message);
     }
 
 
     #region Commands
     /// <summary>
-    ///You can use the KeyToString method of the ManualControl class as an argument, to play the game with the Arrow Keys manually.    
-    ///</summary>
-    private void SendManualCommand(string KeyToString)
-    {
-        switch (KeyToString)
-        {
-            case "Right":
-                Right();
-                Print();
-                break;
-            case "Down":
-                Down();
-                Print();
-                break;
-            case "Left":
-                Left();
-                Print();
-                break;
-            case "Up":
-                Up();
-                Print();
-                break;
-            case "Enter":
-                Enter();
-                break;
-            default:
-                throw new Exception("no Valid command found");
-        }
-    }
-
-    private void SendBotCommands(List<string> commands)
+    /// This method sends a list of commands to the server and then prints the updated map on the screen.
+    /// After this, it reads out every response for each command until the last one
+    /// </summary>
+    private void SendCommands(List<string> commands)
     {
         int count = commands.Count;
 
@@ -203,81 +178,103 @@ class Labyrinth
         _writer.WriteLine("PRINT");
         _writer.Flush();
     }
-    #endregion
 
-
-    #region Get Server Response
-    private ServerResponse? _coordinatesMesssage;
-    private readonly ServerResponse[]? _mapMassageArray = new ServerResponse[11];
-
-    private void GetServerResponse()
+    /// <summary>
+    ///You can use the KeyToString method as an argument, to play the game with the Arrow Keys manually.    
+    ///</summary>
+    private void SendManualCommand(string KeyToString)
     {
-        _reader.ReadLine(); // we dont need the first line, so we read it just out without save.
-
-        GetCoordinateMessage();
-
-        GetMapMessages();
-    }
-
-    private void GetCoordinateMessage()
-    {
-        _coordinatesMesssage = ServerResponse.ParseResponse(_reader.ReadLine());
-        if (_coordinatesMesssage is null)
-            throw new NullReferenceException("coordinatesMesssage can't be null. Disconnected?");
-    }
-
-    private void GetMapMessages()
-    {
-        if (_mapMassageArray is null)
-            throw new NullReferenceException("mapMassageArray can't be null. Disconnected?");
-
-        for (int i = 0; i < _mapMassageArray.Length; i++)
+        switch (KeyToString)
         {
-            _mapMassageArray[i] = ServerResponse.ParseResponse(_reader.ReadLine());
-            if (_mapMassageArray[i] is null)
-                throw new NullReferenceException("mapMassageArray[{i}] can't be null. Disconnected?");
+            case "Right":
+                Right();
+                Print();
+                break;
+            case "Down":
+                Down();
+                Print();
+                break;
+            case "Left":
+                Left();
+                Print();
+                break;
+            case "Up":
+                Up();
+                Print();
+                break;
+            case "Enter":
+                Enter();
+                break;
+            default:
+                throw new Exception("no Valid command found");
+        }
+    }
+    private string KeyToString()
+    {
+        ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+        switch (keyInfo.Key)
+        {
+            case ConsoleKey.RightArrow:
+                return "Right";
+            case ConsoleKey.DownArrow:
+                return "Down";
+            case ConsoleKey.LeftArrow:
+                return "Left";
+            case ConsoleKey.UpArrow:
+                return "Up";
+            case ConsoleKey.E:
+                return "Enter";
+            default:
+                throw new Exception("Wrong Key!");
         }
     }
     #endregion
 
 
-    #region Process Server Response
-    private Location? _currentPosition;
-    private bool _gameWon;
+    #region Get Server Response
+    private ServerResponse? _coordinates;
+    private readonly ServerResponse[]? _mapMassageArray = new ServerResponse[11];
 
-    private void ProcessResponse()
+    private void GetCoordinateMessage()
     {
-        UpdateCoordinates();
-
-        UpdateMap();
-
-        PrintMap();
-
-        UpdateGraph();
+        _coordinates = ServerResponse.ParseResponse(_reader.ReadLine());
+        if (_coordinates is null)
+            throw new NullReferenceException("coordinatesMesssage can't be null. Disconnected?");
     }
 
-    private void UpdateCoordinates()
+    private void GetMapMessages()
     {
-        if (_coordinatesMesssage.Message is null)
+        for (int i = 0; i < _mapMassageArray.Length; i++)
+            _mapMassageArray[i] = ServerResponse.ParseResponse(_reader.ReadLine());       
+    }
+    #endregion
+
+
+    #region Process Server Response
+    private Location? _currentLocation;
+
+    private void UpdateCurrentLocation()
+    {
+        if (_coordinates.Message is null)
             throw new NullReferenceException("coordinatesMesssage.Message can't be null. Disconnected?");
 
 
-        int x = 5 + int.Parse(_coordinatesMesssage.Message.Substring(_coordinatesMesssage.Message.IndexOf("X:") + 2, _coordinatesMesssage.Message.IndexOf(";Y") - _coordinatesMesssage.Message.IndexOf("X:") - 2));
-        int y = 5 + int.Parse(_coordinatesMesssage.Message.Substring(_coordinatesMesssage.Message.IndexOf("Y:") + 2, _coordinatesMesssage.Message.IndexOf(";Z") - _coordinatesMesssage.Message.IndexOf("Y:") - 2));
+        int x = 5 + int.Parse(_coordinates.Message.Substring(_coordinates.Message.IndexOf("X:") + 2, _coordinates.Message.IndexOf(";Y") - _coordinates.Message.IndexOf("X:") - 2));
+        int y = 5 + int.Parse(_coordinates.Message.Substring(_coordinates.Message.IndexOf("Y:") + 2, _coordinates.Message.IndexOf(";Z") - _coordinates.Message.IndexOf("Y:") - 2));
 
-        _currentPosition = new Location(x, y, _mapArray);
+        _currentLocation = new Location(x, y, _mapArray);
         Console.WriteLine($"X: {x} Y: {y}");
 
     }
 
     private void UpdateMap()
     {
-        if (_currentPosition is null || _mapMassageArray is null)
+        if (_currentLocation is null || _mapMassageArray is null)
             throw new NullReferenceException("_currentPosition or _mapMassageArray can't be null. Disconnected?");
 
         for (int y = 0; y < 11; y++)
             for (int x = 0; x < 11; x++)
-                _mapArray[_currentPosition.Y + y - 5, _currentPosition.X + x - 5] = _mapMassageArray[y].Message[x];
+                _mapArray[_currentLocation.Y + y - 5, _currentLocation.X + x - 5] = _mapMassageArray[y].Message[x];
 
     }
 
@@ -285,14 +282,14 @@ class Labyrinth
     {
         //Just for debug//
         for (int y = 0; y < _height + 10; y++)
-                for (int x = 0; x < _width + 10; x++)
-                    if (_reachedLocations[y, x] is true)
-                        _mapArray[y, x] = '*';
+            for (int x = 0; x < _width + 10; x++)
+                if (_reachedLocations[y, x] is true)
+                    _mapArray[y, x] = '*';
 
-        if (_currentPosition is null)
+        if (_currentLocation is null)
             throw new NullReferenceException("_currentPosition can't be null.");
 
-        _mapArray[_currentPosition.Y, _currentPosition.X] = 'P';
+        _mapArray[_currentLocation.Y, _currentLocation.X] = 'P';
 
         StringBuilder stringBuilder = new StringBuilder();
         for (int y = 0; y < _height + 10; y++)
@@ -318,12 +315,11 @@ class Labyrinth
             stringBuilder.Append('\n');
         }
         Console.WriteLine(stringBuilder.ToString());
-        stringBuilder.Clear();
     }
 
     public void UpdateGraph()
     {
-        if (_currentPosition is null)
+        if (_currentLocation is null)
             throw new NullReferenceException("_currentPosition can't be null. Disconnected?");
 
         int currentX, currentY;
@@ -332,8 +328,8 @@ class Labyrinth
         {
             for (int x = 0; x < 11; x++)
             {
-                currentX = _currentPosition.X + x - 5;
-                currentY = _currentPosition.Y + y - 5;
+                currentX = _currentLocation.X + x - 5;
+                currentY = _currentLocation.Y + y - 5;
                 if (currentX < _width + 10 && currentY < _height + 10 && currentX > 0 && currentY > 0)
                 {
                     if (_mapArray[currentY, currentX] is not 'W' && _mapArray[currentY, currentX] is not '\0' && _mapArray[currentY, currentX] is not '.')
@@ -343,6 +339,5 @@ class Labyrinth
         }
     }
     #endregion
-
 
 }

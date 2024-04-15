@@ -7,12 +7,11 @@
 
         public readonly Dictionary<(int x, int y), Location> Graph = new Dictionary<(int x, int y), Location>();
 
-
         /// <summary>
         /// Invokes every private method in this class to generate a list containing the best path, 
         /// represented as a series of command strings
         /// </summary>
-        public List<string> Run(Location currentPosition, char[,] map, bool[,] reachedLocations, bool gameWon)
+        public List<string> Run(Location currentPosition, char[,] map, bool[,] reachedLocations, ref bool gameWon)
         {
             Location target = GetTarget(currentPosition, map, reachedLocations);
             List<(int x, int y)> Path = Pathfinding(target, currentPosition, map, ref gameWon);
@@ -68,7 +67,9 @@
             }
 
             // Ein Brotkrümelpfad könnte auch hier der waytogo sein, um wieder solange zurück zu laufen bis wir wieder ein undefine field finden.
-            _breadKrumelPath.Pop();
+            for(int i = 0; i < 20; i++)
+                _breadKrumelPath.Pop();
+
             (int x, int y) krumel = _breadKrumelPath.Pop();
             return new Location(krumel.x, krumel.y, map);
 
@@ -79,6 +80,7 @@
 
         /// <summary>
         /// This method helps getTarget determine if it is reachable.
+        /// Note: we search with this method to, if we found the target'T' and take there location and set a flag on true. 
         /// </summary>
         private bool IsReachable(Location current, char[,] map)
         {

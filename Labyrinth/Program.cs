@@ -4,7 +4,9 @@ class Program
 {
     static void Main()
     {
-        Labyrinth Labyrinth = new Labyrinth(120, 35);
+        //Console.WriteLine($"DebugWidth: {Console.BufferWidth}\nDebugHeight:{Console.BufferHeight}\n");
+        //Labyrinth Labyrinth = new Labyrinth(Console.BufferWidth - 10, Console.BufferHeight - 15);
+        Labyrinth Labyrinth = new Labyrinth(128, 32);
         Labyrinth.GameLoop();
     }
 }
