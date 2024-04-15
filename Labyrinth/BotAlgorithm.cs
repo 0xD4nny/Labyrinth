@@ -22,14 +22,14 @@
         /// <summary>
         /// This method iterates along the edge of the field of view once and returns the first empty field found at the edge.
         /// </summary>
-        private Location GetTarget(Location currentPosition, char[,] map, bool[,] reachedLocations)
+        private Location GetTarget(Location currentLocation, char[,] map, bool[,] reachedLocations)
         {
-            if (currentPosition is null)
-                throw new ArgumentNullException(nameof(currentPosition));
+            if (currentLocation is null)
+                throw new ArgumentNullException(nameof(currentLocation));
 
             // + 5 to start in corner botton right (Rechts unten gewichtet)
-            int searchPointX = currentPosition.X + 5;
-            int searchPointY = currentPosition.Y + 5;
+            int searchPointX = currentLocation.X + 5;
+            int searchPointY = currentLocation.Y + 5;
 
             if (_target.tDetected && IsReachable(new Location(_target.x, _target.y, map), map))
                 return new Location(_target.x, _target.y, map);

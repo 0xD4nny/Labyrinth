@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 
@@ -71,10 +72,49 @@ class Labyrinth
             ProcessResponse();
         }
 
-        //the following three lines are the winningprocess. The game and the program ends after this.
+        //the following three lines are the winningprocess. The game and the program ends after this process.
         Enter();
         ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
         Console.WriteLine(response.Message);
+    }
+
+    public void Benchmark()
+    {
+        Stopwatch stopwatch = new Stopwatch();
+        (long console, long botAlgorithm, long getResponse, long processResponse) times = (0, 0, 0, 0);
+
+        while (!_gameWon)
+        {
+            stopwatch.Start();
+            Console.SetCursorPosition(0, 0);
+            Console.CursorVisible = false;
+            stopwatch.Stop();
+            times.console += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            SendCommands(_botAlgorithm.Run(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon));
+            stopwatch.Stop();
+            times.botAlgorithm += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            GetResponse();
+            stopwatch.Stop();
+            times.getResponse += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            ProcessResponse();
+            stopwatch.Stop();
+            times.processResponse += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+        }
+
+        Enter();
+        ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
+        Console.WriteLine(response.Message);
+        Console.WriteLine($"ConsoleSettings:\t{times.console/1000}ms\nAlgorithm:\t\t{times.botAlgorithm/1000}ms\nGetResponse:\t\t{times.getResponse/1000}ms\nProcessResponse:\t{times.processResponse/1000}ms\n");
     }
 
 
@@ -230,10 +270,11 @@ class Labyrinth
         UpdateCurrentLocation();
         UpdateMap();
         UpdateGraph();
-        
+
         PrintStaticMap();
         //PrintDynamicMap();
     }
+
     private void UpdateCurrentLocation()
     {
         if (_coordinatesResponse is null)
@@ -269,11 +310,11 @@ class Labyrinth
             {
                 currentX = _currentLocation.X + x - 5;
                 currentY = _currentLocation.Y + y - 5;
-                if (!_botAlgorithm.Graph.ContainsKey((currentX,currentY)) &&
+                if (!_botAlgorithm.Graph.ContainsKey((currentX, currentY)) &&
                     currentX < _width + 10 && currentY < _height + 10 && currentX > 0 && currentY > 0 &&
                     _mapArray[currentY, currentX] is not 'W' && _mapArray[currentY, currentX] is not '\0' && _mapArray[currentY, currentX] is not '.')
                 {
-                        _botAlgorithm.Graph[(currentX, currentY)] = new Location(currentX, currentY, _mapArray);
+                    _botAlgorithm.Graph[(currentX, currentY)] = new Location(currentX, currentY, _mapArray);
                 }
             }
     }
@@ -316,6 +357,7 @@ class Labyrinth
 
         Console.WriteLine(stringBuilder.ToString());
     }
+
     private void PrintDynamicMap()
     {
         //Just for debug//
@@ -324,10 +366,38 @@ class Labyrinth
                 if (_reachedLocations[y, x] is true)
                     _mapArray[y, x] = '*';
 
+        _mapArray[_currentLocation!.Y, _currentLocation.X] = 'P';
+
+        int width = Console.BufferWidth;
+        int height = Console.BufferHeight - 2;
+
         StringBuilder stringBuilder = new StringBuilder();
+        for (int h = _currentLocation.Y - height / 2; h < _currentLocation.Y + height / 2; h++)
+        {
+            for (int w = _currentLocation.X - width / 2; w < _currentLocation.X + width / 2; w++)
+            {
+                if (h < _height + 10 && w < _width + 10 && h > 0 && w > 0)
+                    switch (_mapArray[h, w])
+                    {
+                        case 'W':
+                            stringBuilder.Append('█');
+                            break;
+                        case '\0':
+                            stringBuilder.Append('?');
+                            break;
+                        case '.':
+                            stringBuilder.Append('░');
+                            break;
+                        default:
+                            stringBuilder.Append(_mapArray[h, w]);
+                            break;
+                    }
+                else
+                    stringBuilder.Append('░');
+            }
 
-
-
+            stringBuilder.Append('\n');
+        }
 
         Console.WriteLine(stringBuilder.ToString());
     }
