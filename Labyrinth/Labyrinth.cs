@@ -342,7 +342,7 @@ class Labyrinth
         int y = 5 + int.Parse(_coordinatesResponse.Message.Substring(_coordinatesResponse.Message.IndexOf("Y:") + 2, _coordinatesResponse.Message.IndexOf(";Z") - _coordinatesResponse.Message.IndexOf("Y:") - 2));
 
         _currentLocation = new Location(x, y, _mapArray);
-        //Console.WriteLine($"X: {x} Y: {y}");
+        Console.WriteLine($"X: {x} Y: {y}");
     }
 
     private void UpdateMap()
@@ -426,7 +426,7 @@ class Labyrinth
 
 
         int width = Console.BufferWidth;
-        int height = Console.WindowHeight;
+        int height = Console.WindowHeight - 3;
 
         StringBuilder stringBuilder = new StringBuilder();
         for (int h = _currentLocation.Y - height / 2; h < _currentLocation.Y + height / 2; h++)

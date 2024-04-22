@@ -4,8 +4,8 @@ class Program
 {
     static void Main()
     {
-        Labyrinth Labyrinth = new Labyrinth(128, 32);
+        Labyrinth Labyrinth = new Labyrinth(128, 128);
         //Labyrinth.GameLoop();
-        Labyrinth.Benchmark();
+        Labyrinth.BenchmarkGameLoop();
     }
 }

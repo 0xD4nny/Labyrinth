@@ -57,6 +57,14 @@ namespace Labyrinth
 
             return dirs;
         }
+        private bool IsAnyNeigborUndefine(Location location, char[,] map)
+        {
+            for (int i = 0; i < 4; i++)
+                if (map[location.Neighbors[i].Y, location.Neighbors[i].X] == '\0')
+                    return true;
+
+            return false;
+        }
 
         /// <summary>
         /// This method iterates along the edge of the field of view once and returns the first empty field found at the edge.
@@ -196,6 +204,44 @@ namespace Labyrinth
             return path;
         }
 
+        /// <summary>
+        /// This methode is to parse the result of the pathfinding method in strings for the responses.
+        /// </summary>
+        private List<string> ParseCordsToDirs(List<(int X, int Y)> path, bool[,] reachedLocations)
+        {
+            string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
+            List<string> dirs = new List<string>();
+            (int x, int y) current = path[0];
+
+            path.Remove(current);
+            reachedLocations[current.y, current.x] = true;
+
+            while (path.Count > 0)
+            {
+                (int x, int y) next = path[0];
+                path.Remove(next);
+                for (int i = 0; i < 4; i++)
+                {
+                    if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
+                    {
+                        reachedLocations[next.y, next.x] = true;
+                        dirs.Add(_dirs[i]);
+                        current = next;
+                    }
+                }
+            }
+            return dirs;
+        }
+
+
+        //"DOWN" = Y++;
+        //"Right = X++;
+        //"LEFT" = X--;
+        //"UP" = Y--;
+
+        /// <summary>
+        /// Alternative Algorithm
+        /// </summary>
         private List<(int X, int Y)> AStar(Location target, Location currentPosition, char[,] map, ref bool gameWon)
         {
             if (currentPosition is null)
@@ -249,51 +295,6 @@ namespace Labyrinth
         {
             return Math.Abs(current.X - target.X) + Math.Abs(current.Y - target.Y);
         }
-
-        private bool IsAnyNeigborUndefine(Location location, char[,] map)
-        {
-            for (int i = 0; i < 4; i++)
-                if (map[location.Neighbors[i].Y, location.Neighbors[i].X] == '\0')
-                    return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// This methode is to parse the result of the pathfinding method in strings for the responses.
-        /// </summary>
-        private List<string> ParseCordsToDirs(List<(int X, int Y)> path, bool[,] reachedLocations)
-        {
-            string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
-            List<string> dirs = new List<string>();
-            (int x, int y) current = path[0];
-
-            path.Remove(current);
-            reachedLocations[current.y, current.x] = true;
-
-            while (path.Count > 0)
-            {
-                (int x, int y) next = path[0];
-                path.Remove(next);
-                for (int i = 0; i < 4; i++)
-                {
-                    if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
-                    {
-                        reachedLocations[next.y, next.x] = true;
-                        dirs.Add(_dirs[i]);
-                        current = next;
-                    }
-                }
-            }
-            return dirs;
-        }
-
-        //"DOWN" = Y++;
-        //"Right = X++;
-        //"LEFT" = X--;
-        //"UP" = Y--;
-
-
     }
 }
 
