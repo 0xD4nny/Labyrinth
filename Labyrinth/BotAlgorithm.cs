@@ -16,11 +16,15 @@ namespace Labyrinth
         {
             GetHoles(currentPosition, map, reachedLocations);
             Location location = _reachableHoles.Pop();
+            
             while ((location.X, location.Y) == (currentPosition.X, currentPosition.Y))
                 location = _reachableHoles.Pop();
 
-            List<(int x, int y)> Path = AStar(location, currentPosition, map, ref gameWon);
-            return ParseCordsToDirs(Path, reachedLocations);
+
+            List<Location> path = Pathfinding(currentPosition, location, map, ref gameWon);
+            List<string> dirs = ParseCordsToDirs(path, reachedLocations);
+
+            return dirs;
         }
 
         public long getHoles = 0;
@@ -44,7 +48,7 @@ namespace Labyrinth
             stopwatch.Reset();
 
             stopwatch.Start();
-            List<(int x, int y)> Path = Pathfinding(location, currentPosition, map, ref gameWon);
+            List<Location> Path = AStar(location, currentPosition, map, ref gameWon);
             stopwatch.Stop();
             pathFinding += stopwatch.ElapsedTicks;
             stopwatch.Reset();
@@ -57,6 +61,7 @@ namespace Labyrinth
 
             return dirs;
         }
+
         private bool IsAnyNeigborUndefine(Location location, char[,] map)
         {
             for (int i = 0; i < 4; i++)
@@ -155,20 +160,20 @@ namespace Labyrinth
         /// <summary>
         /// This pathfinding algorithm method returns a queue with the (int X, int Y) from the start point to the target point.
         /// </summary>
-        private List<(int X, int Y)> Pathfinding(Location target, Location currentPosition, char[,] map, ref bool gameWon)
+        private List<Location> Pathfinding(Location target, Location currentPosition, char[,] map, ref bool gameWon)
         {
             if (currentPosition is null)
                 throw new ArgumentNullException("_currentPosition can't be null.");
 
             LinkedList<(int X, int Y)> breadkrumel = new LinkedList<(int X, int Y)>();
             HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
-            List<(int X, int Y)> path = new List<(int X, int Y)>();
+            List<Location> path = new List<Location>();
             Queue<Location> queue = new Queue<Location>();
 
             Location current = new Location(currentPosition.X, currentPosition.Y, map);
 
             queue.Enqueue(current);
-            path.Add((current.X, current.Y));
+            path.Add(current);
             breadkrumel.AddFirst((current.X, current.Y));
 
             while ((current.X, current.Y) != (target.X, target.Y) || map[current.Y, current.X] is 'T')
@@ -187,7 +192,7 @@ namespace Labyrinth
                     {
                         breadkrumel.AddFirst((current.Neighbors[i].X, current.Neighbors[i].Y));
                         queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map));
-                        path.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
+                        path.Add(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map));
                         break;
                     }
 
@@ -196,35 +201,35 @@ namespace Labyrinth
                     (int X, int Y) = breadkrumel.First.Next.Value;
                     breadkrumel.RemoveFirst();
                     queue.Enqueue(new Location(X, Y, map));
-                    path.Add((X, Y));
+                    path.Add(new Location(X,Y, map));
                 }
 
             }
-            path.Add((target.X, target.Y));
+            path.Add(new Location(target.X, target.Y,map));
             return path;
         }
 
         /// <summary>
         /// This methode is to parse the result of the pathfinding method in strings for the responses.
         /// </summary>
-        private List<string> ParseCordsToDirs(List<(int X, int Y)> path, bool[,] reachedLocations)
+        private List<string> ParseCordsToDirs(List<Location> path, bool[,] reachedLocations)
         {
             string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
             List<string> dirs = new List<string>();
-            (int x, int y) current = path[0];
+            Location current = path[0];
 
             path.Remove(current);
-            reachedLocations[current.y, current.x] = true;
+            reachedLocations[current.Y, current.X] = true;
 
             while (path.Count > 0)
             {
-                (int x, int y) next = path[0];
+                Location next = path[0];
                 path.Remove(next);
                 for (int i = 0; i < 4; i++)
                 {
-                    if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
+                    if (current.X + Direction.DirX[i] == next.X && current.Y + Direction.DirY[i] == next.Y)
                     {
-                        reachedLocations[next.y, next.x] = true;
+                        reachedLocations[next.Y, next.X] = true;
                         dirs.Add(_dirs[i]);
                         current = next;
                     }
@@ -242,56 +247,40 @@ namespace Labyrinth
         /// <summary>
         /// Alternative Algorithm
         /// </summary>
-        private List<(int X, int Y)> AStar(Location target, Location currentPosition, char[,] map, ref bool gameWon)
+        
+        public List<Location> AStar(Location start, Location goal, char[,] map, ref bool gameWon)
         {
-            if (currentPosition is null)
-                throw new ArgumentNullException("_currentPosition can't be null.");
+            Dictionary<Location, int> costSoFar = new Dictionary<Location, int>();
+            List<Location> path = new List<Location>();
+            PriorityQueue<Location, int> frontier = new PriorityQueue<Location, int>();
 
-            LinkedList<(int X, int Y)> breadkrumel = new LinkedList<(int X, int Y)>();
-            HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
-            List<(int X, int Y)> path = new List<(int X, int Y)>();
-            PriorityQueue<Location, double> queue = new PriorityQueue<Location, double>();
+            frontier.Enqueue(start, 0);
+            costSoFar[start] = 0;
 
-            Location current = new Location(currentPosition.X, currentPosition.Y, map);
-
-            queue.Enqueue(current, 0);
-            path.Add((current.X, current.Y));
-            breadkrumel.AddFirst((current.X, current.Y));
-
-            while ((current.X, current.Y) != (target.X, target.Y) || map[current.Y, current.X] is 'T')
+            while (frontier.Count > 0)
             {
-                current = queue.Dequeue();
-                reached.Add((current.X, current.Y));
+                Location current = frontier.Dequeue();
+                path.Add(current);
 
-                if (map[current.Y, current.X] is 'T')
-                {
-                    gameWon = true;
-                    break;
-                }
+                if ((current.X, current.Y) == (goal.X, goal.Y))
+                    return path;
 
                 for (int i = 0; i < 4; i++)
-                    if (!reached.Contains((current.Neighbors[i].X, current.Neighbors[i].Y)) && current.Neighbors[i].IsReachable)
-                    {
-                        breadkrumel.AddFirst((current.Neighbors[i].X, current.Neighbors[i].Y));
-                        queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map), GetHeristic(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map), target));
-                        path.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
-                        break;
-                    }
-
-                if (queue.Count == 0)
                 {
-                    (int X, int Y) = breadkrumel.First.Next.Value;
-                    breadkrumel.RemoveFirst();
-                    queue.Enqueue(new Location(X, Y, map), GetHeristic(new Location(X, Y, map), target));
-                    path.Add((X, Y));
+                    Location next = new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map);
+                    int newCost = costSoFar[current];
+                    if (map[next.Y, next.X] is not 'W')
+                    {
+                        costSoFar[next] = newCost;
+                        frontier.Enqueue(next, newCost + GetHeuristic(next, goal));
+                    }
                 }
-
             }
-            path.Add((target.X, target.Y));
-            return path;
+
+            throw new Exception("pathfinding has failed.");
         }
 
-        private double GetHeristic(Location current, Location target)
+        private int GetHeuristic(Location current, Location target)
         {
             return Math.Abs(current.X - target.X) + Math.Abs(current.Y - target.Y);
         }
