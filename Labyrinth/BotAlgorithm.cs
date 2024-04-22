@@ -1,29 +1,74 @@
-﻿namespace Labyrinth
+﻿using System.Diagnostics;
+
+namespace Labyrinth
 {
     class BotAlgorithm
     {
-        private readonly Stack<(int X, int Y)> _breadKrumelPath = new Stack<(int X, int Y)>();
+        public readonly Dictionary<(int x, int y), Location> Graph = new Dictionary<(int x, int y), Location>();
+        private readonly Stack<Location> _reachableHoles = new Stack<Location>();
         private (bool tDetected, int x, int y) _target;
 
-        public readonly Dictionary<(int x, int y), Location> Graph = new Dictionary<(int x, int y), Location>();
-
         /// <summary>
-        /// Invokes every private method in this class to generate a list containing the best path, 
+        /// Invokes every private method in this class to generate a list thats containing the best path, 
         /// represented as a series of command strings
         /// </summary>
         public List<string> Run(Location currentPosition, char[,] map, bool[,] reachedLocations, ref bool gameWon)
         {
-            Location target = GetTarget(currentPosition, map, reachedLocations);
-            List<(int x, int y)> Path = Pathfinding(target, currentPosition, map, ref gameWon);
-            while (PathFilter(Path));
+            GetHoles(currentPosition, map, reachedLocations);
+            Location location = _reachableHoles.Pop();
+            while ((location.X, location.Y) == (currentPosition.X, currentPosition.Y))
+                location = _reachableHoles.Pop();
+
+            List<(int x, int y)> Path = AStar(location, currentPosition, map, ref gameWon);
             return ParseCordsToDirs(Path, reachedLocations);
+        }
+
+        public long getHoles = 0;
+        public long pathFinding = 0;
+        public long parseChords = 0;
+        public long allTicks = 0;
+
+        public List<string> RunBenchmark(Location currentPosition, char[,] map, bool[,] reachedLocations, ref bool gameWon)
+        {
+            Stopwatch stopwatch = new Stopwatch();
+
+            stopwatch.Start();
+            GetHoles(currentPosition, map, reachedLocations);
+            Location location = _reachableHoles.Pop();
+
+            while ((location.X, location.Y) == (currentPosition.X, currentPosition.Y))
+                location = _reachableHoles.Pop();
+
+            stopwatch.Stop();
+            getHoles += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            List<(int x, int y)> Path = Pathfinding(location, currentPosition, map, ref gameWon);
+            stopwatch.Stop();
+            pathFinding += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            List<string> dirs = ParseCordsToDirs(Path, reachedLocations);
+            stopwatch.Stop();
+            parseChords += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            return dirs;
         }
 
         /// <summary>
         /// This method iterates along the edge of the field of view once and returns the first empty field found at the edge.
         /// </summary>
-        private Location GetTarget(Location currentLocation, char[,] map, bool[,] reachedLocations)
+        private void GetHoles(Location currentLocation, char[,] map, bool[,] reachedLocations)
         {
+            if (_target.tDetected && IsReachable(new Location(_target.x, _target.y, map), map))
+            {
+                _reachableHoles.Push(new Location(_target.x, _target.y, map));
+                return;
+            }
+
             if (currentLocation is null)
                 throw new ArgumentNullException(nameof(currentLocation));
 
@@ -31,51 +76,41 @@
             int searchPointX = currentLocation.X + 5;
             int searchPointY = currentLocation.Y + 5;
 
-            if (_target.tDetected && IsReachable(new Location(_target.x, _target.y, map), map))
-                return new Location(_target.x, _target.y, map);
-
             for (int i = 0; i < 10; i++)
             {
-                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) && reachedLocations[searchPointY, searchPointX] is false)
-                    return new Location(searchPointX, searchPointY, map);
+                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) &&
+                    reachedLocations[searchPointY, searchPointX] is false && !_reachableHoles.Contains(new Location(searchPointX, searchPointY, map)))
+                    _reachableHoles.Push(new Location(searchPointX, searchPointY, map));
 
                 searchPointX--;
             }
 
             for (int i = 0; i < 10; i++)
             {
-                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) && reachedLocations[searchPointY, searchPointX] is false)
-                    return new Location(searchPointX, searchPointY, map);
+                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) &&
+                    reachedLocations[searchPointY, searchPointX] is false && !_reachableHoles.Contains(new Location(searchPointX, searchPointY, map)))
+                    _reachableHoles.Push(new Location(searchPointX, searchPointY, map));
 
                 searchPointY--;
             }
 
             for (int i = 0; i < 10; i++)
             {
-                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) && reachedLocations[searchPointY, searchPointX] is false)
-                    return new Location(searchPointX, searchPointY, map);
+                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) &&
+                    reachedLocations[searchPointY, searchPointX] is false && !_reachableHoles.Contains(new Location(searchPointX, searchPointY, map)))
+                    _reachableHoles.Push(new Location(searchPointX, searchPointY, map));
 
                 searchPointX++;
             }
 
             for (int i = 0; i < 10; i++)
             {
-                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) && reachedLocations[searchPointY, searchPointX] is false)
-                    return new Location(searchPointX, searchPointY, map);
+                if (Graph.ContainsKey((searchPointX, searchPointY)) && IsReachable(new Location(searchPointX, searchPointY, map), map) &&
+                    reachedLocations[searchPointY, searchPointX] is false && !_reachableHoles.Contains(new Location(searchPointX, searchPointY, map)))
+                    _reachableHoles.Push(new Location(searchPointX, searchPointY, map));
 
                 searchPointY++;
             }
-
-            // Ein Brotkrümelpfad könnte auch hier der waytogo sein, um wieder solange zurück zu laufen bis wir wieder ein undefine field finden.
-            for(int i = 0; i < 20; i++)
-                _breadKrumelPath.Pop();
-
-            (int x, int y) krumel = _breadKrumelPath.Pop();
-            return new Location(krumel.x, krumel.y, map);
-
-            throw new Exception("No Target found");
-
-
         }
 
         /// <summary>
@@ -102,7 +137,6 @@
                     }
                 if (map[current.Y, current.X] is 'T')
                     _target = (true, current.X, current.Y);
-
 
                 if (map[current.Y, current.X] is 'P')
                     return true;
@@ -162,32 +196,67 @@
             return path;
         }
 
-        /// <summary>
-        /// This method filters out dead ends from the path, based on their doublicates.
-        /// </summary>
-        private bool PathFilter(List<(int x, int y)> path)
+        private List<(int X, int Y)> AStar(Location target, Location currentPosition, char[,] map, ref bool gameWon)
         {
-            List<(int index, int x, int y)> indexes = new List<(int index, int x, int y)>();
-            List<(int index, int x, int y)> indexes2 = new List<(int index, int x, int y)>();
+            if (currentPosition is null)
+                throw new ArgumentNullException("_currentPosition can't be null.");
 
-            // whit this loop, we search doublicates;
-            for (int i = 0; i < path.Count; i++)
-                for (int j = 1 + i; j < path.Count; j++)
-                    if (path[i] == path[j])
-                        indexes.Add((i, path[i].x, path[i].y));
+            LinkedList<(int X, int Y)> breadkrumel = new LinkedList<(int X, int Y)>();
+            HashSet<(int X, int Y)> reached = new HashSet<(int X, int Y)>();
+            List<(int X, int Y)> path = new List<(int X, int Y)>();
+            PriorityQueue<Location, double> queue = new PriorityQueue<Location, double>();
 
-            // with this loop, we search how much doublicates ever doublicate has.
-            for (int i = 0; i < indexes.Count; i++)
-                for (int j = 0; j < path.Count; j++)
-                    if (path[j] == (indexes[i].x, indexes[i].y))
-                        indexes2.Add((j, path[j].x, path[j].y));
+            Location current = new Location(currentPosition.X, currentPosition.Y, map);
 
-            if (indexes2.Count <= 0)
-                return false;
+            queue.Enqueue(current, 0);
+            path.Add((current.X, current.Y));
+            breadkrumel.AddFirst((current.X, current.Y));
 
-            path.RemoveRange(indexes2[0].index, indexes2[1].index - indexes2[0].index);
+            while ((current.X, current.Y) != (target.X, target.Y) || map[current.Y, current.X] is 'T')
+            {
+                current = queue.Dequeue();
+                reached.Add((current.X, current.Y));
 
-            return true;
+                if (map[current.Y, current.X] is 'T')
+                {
+                    gameWon = true;
+                    break;
+                }
+
+                for (int i = 0; i < 4; i++)
+                    if (!reached.Contains((current.Neighbors[i].X, current.Neighbors[i].Y)) && current.Neighbors[i].IsReachable)
+                    {
+                        breadkrumel.AddFirst((current.Neighbors[i].X, current.Neighbors[i].Y));
+                        queue.Enqueue(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map), GetHeristic(new Location(current.Neighbors[i].X, current.Neighbors[i].Y, map), target));
+                        path.Add((current.Neighbors[i].X, current.Neighbors[i].Y));
+                        break;
+                    }
+
+                if (queue.Count == 0)
+                {
+                    (int X, int Y) = breadkrumel.First.Next.Value;
+                    breadkrumel.RemoveFirst();
+                    queue.Enqueue(new Location(X, Y, map), GetHeristic(new Location(X, Y, map), target));
+                    path.Add((X, Y));
+                }
+
+            }
+            path.Add((target.X, target.Y));
+            return path;
+        }
+
+        private double GetHeristic(Location current, Location target)
+        {
+            return Math.Abs(current.X - target.X) + Math.Abs(current.Y - target.Y);
+        }
+
+        private bool IsAnyNeigborUndefine(Location location, char[,] map)
+        {
+            for (int i = 0; i < 4; i++)
+                if (map[location.Neighbors[i].Y, location.Neighbors[i].X] == '\0')
+                    return true;
+
+            return false;
         }
 
         /// <summary>
@@ -201,7 +270,6 @@
 
             path.Remove(current);
             reachedLocations[current.y, current.x] = true;
-            _breadKrumelPath.Push((current.x, current.y));
 
             while (path.Count > 0)
             {
@@ -211,7 +279,6 @@
                 {
                     if (current.x + Direction.DirX[i] == next.x && current.y + Direction.DirY[i] == next.y)
                     {
-                        _breadKrumelPath.Push((next.x, next.y));
                         reachedLocations[next.y, next.x] = true;
                         dirs.Add(_dirs[i]);
                         current = next;
@@ -226,10 +293,34 @@
         //"LEFT" = X--;
         //"UP" = Y--;
 
-        //private double GetHeristic(Location current, Location target)
-        //{
-        //    return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
-        //}
 
     }
 }
+
+///// <summary>
+///// This method filters out dead ends from the path, based on their doublicates.
+///// </summary>
+//private bool PathFilter(List<(int x, int y)> path)
+//{
+//    List<(int index, int x, int y)> indexes = new List<(int index, int x, int y)>();
+//    List<(int index, int x, int y)> indexes2 = new List<(int index, int x, int y)>();
+
+//    // whit this loop, we search doublicates;
+//    for (int i = 0; i < path.Count; i++)
+//        for (int j = 1 + i; j < path.Count; j++)
+//            if (path[i] == path[j])
+//                indexes.Add((i, path[i].x, path[i].y));
+
+//    // with this loop, we search how much doublicates ever doublicate has.
+//    for (int i = 0; i < indexes.Count; i++)
+//        for (int j = 0; j < path.Count; j++)
+//            if (path[j] == (indexes[i].x, indexes[i].y))
+//                indexes2.Add((j, path[j].x, path[j].y));
+
+//    if (indexes2.Count <= 0)
+//        return false;
+
+//    path.RemoveRange(indexes2[0].index, indexes2[1].index - indexes2[0].index);
+
+//    return true;
+//} Pathfilter

@@ -55,7 +55,12 @@ class Labyrinth
 
         GetResponse();
 
-        ProcessResponse();
+        UpdateCurrentLocation();
+        UpdateMap();
+        UpdateGraph();
+
+        //PrintStaticMap();
+        PrintDynamicMap();
     }
 
     public void GameLoop()
@@ -69,7 +74,12 @@ class Labyrinth
 
             GetResponse();
 
-            ProcessResponse();
+            UpdateCurrentLocation();
+            UpdateMap();
+            UpdateGraph();
+
+            //PrintStaticMap();
+            PrintDynamicMap();
         }
 
         //the following three lines are the winningprocess. The game and the program ends after this process.
@@ -78,10 +88,21 @@ class Labyrinth
         Console.WriteLine(response.Message);
     }
 
-    public void Benchmark()
+
+    #region Benchmark
+    private int requests = 0;
+
+    public void BenchmarkGameLoop()
     {
         Stopwatch stopwatch = new Stopwatch();
-        (long console, long botAlgorithm, long getResponse, long processResponse) times = (0, 0, 0, 0);
+        long console = 0;
+        long botAlgorithm = 0;
+        long getResponse = 0;
+        long updateCurrentLocation = 0;
+        long updateMap = 0;
+        long updateGraph = 0;
+        long printMap = 0;
+        long loop = 0;
 
         while (!_gameWon)
         {
@@ -89,33 +110,80 @@ class Labyrinth
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
             stopwatch.Stop();
-            times.console += stopwatch.ElapsedTicks;
+            console += stopwatch.ElapsedTicks;
             stopwatch.Reset();
 
             stopwatch.Start();
-            SendCommands(_botAlgorithm.Run(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon));
+            List<string> commands = _botAlgorithm.RunBenchmark(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon);
+            SendCommands(commands);
             stopwatch.Stop();
-            times.botAlgorithm += stopwatch.ElapsedTicks;
+            botAlgorithm += stopwatch.ElapsedTicks;
             stopwatch.Reset();
+            requests++; // +1 for the print command
+            requests += commands.Count;
 
             stopwatch.Start();
             GetResponse();
             stopwatch.Stop();
-            times.getResponse += stopwatch.ElapsedTicks;
+            getResponse += stopwatch.ElapsedTicks;
             stopwatch.Reset();
 
             stopwatch.Start();
-            ProcessResponse();
+            UpdateCurrentLocation();
             stopwatch.Stop();
-            times.processResponse += stopwatch.ElapsedTicks;
+            updateCurrentLocation += stopwatch.ElapsedTicks;
             stopwatch.Reset();
+
+            stopwatch.Start();
+            UpdateMap();
+            stopwatch.Stop();
+            updateMap += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            UpdateGraph();
+            stopwatch.Stop();
+            updateGraph += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+
+            stopwatch.Start();
+            //PrintStaticMap();
+            PrintDynamicMap();
+            stopwatch.Stop();
+            printMap += stopwatch.ElapsedTicks;
+            stopwatch.Reset();
+            loop++;
         }
 
         Enter();
+
         ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
-        Console.WriteLine(response.Message);
-        Console.WriteLine($"ConsoleSettings:\t{times.console/1000}ms\nAlgorithm:\t\t{times.botAlgorithm/1000}ms\nGetResponse:\t\t{times.getResponse/1000}ms\nProcessResponse:\t{times.processResponse/1000}ms\n");
+        Console.WriteLine(response.Message + '\n');
+
+        long totalticks = console + botAlgorithm + getResponse + updateCurrentLocation + updateMap + updateGraph + printMap;
+        Console.WriteLine($"ConsoleSettings:\t{console / 1000,10}ms\t{getPercent(totalticks, console):F2}%");
+        Console.WriteLine($"Algorithm:\t\t{botAlgorithm / 1000,10}ms\t{getPercent(totalticks, botAlgorithm):F2}%");
+        Console.WriteLine($"GetResponse:\t\t{getResponse / 1000,10}ms\t{getPercent(totalticks, getResponse):F2}%");
+        Console.WriteLine($"UpdateCurrentLocation:\t{updateCurrentLocation / 1000,10}ms\t{getPercent(totalticks, updateCurrentLocation):F2}%");
+        Console.WriteLine($"UpdateMap:\t\t{updateMap / 1000,10}ms\t{getPercent(totalticks, updateMap):F2}%");
+        Console.WriteLine($"UpdateGraph:\t\t{updateGraph / 1000,10}ms\t{getPercent(totalticks, updateGraph):F2}%");
+        Console.WriteLine($"PrintMap:\t\t{printMap / 1000,10}ms\t{getPercent(totalticks, printMap):F2}%\n");
+
+        _botAlgorithm.allTicks = _botAlgorithm.getHoles + _botAlgorithm.pathFinding + _botAlgorithm.parseChords;
+        Console.WriteLine($"GetHoles:\t\t{_botAlgorithm.getHoles / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.getHoles):F2}%");
+        Console.WriteLine($"PathFinding:\t\t{_botAlgorithm.pathFinding / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.pathFinding):F2}%");
+        Console.WriteLine($"ParseChords:\t\t{_botAlgorithm.parseChords / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.parseChords):F2}%\n");
+
+        decimal rps = requests / decimal.Parse(response.Message.Substring(response.Message.IndexOf("in ") + 2, response.Message.IndexOf(" secs.") - response.Message.IndexOf("in ") - 2));
+        Console.WriteLine($"Total Requests: {requests}\nRequests per sec: {rps:F2}.");
+        Console.WriteLine("gameLoops: " + loop);
     }
+
+    private double getPercent(long allTicks, long item)
+    {
+        return (((double)item / 1000) / ((double)allTicks / 1000) * 100);
+    }
+    #endregion
 
 
     #region Commands
@@ -155,8 +223,7 @@ class Labyrinth
         Print();
 
         while (!(count-- == 1))
-            ServerResponse.ParseResponse(_reader.ReadLine());
-
+            _reader.ReadLine();
     }
 
     private void Right()
@@ -265,15 +332,6 @@ class Labyrinth
 
     #region Process Server Response
     private Location? _currentLocation;
-    private void ProcessResponse()
-    {
-        UpdateCurrentLocation();
-        UpdateMap();
-        UpdateGraph();
-
-        PrintStaticMap();
-        //PrintDynamicMap();
-    }
 
     private void UpdateCurrentLocation()
     {
@@ -321,14 +379,13 @@ class Labyrinth
 
     private void PrintStaticMap()
     {
-        //Just for debug//
         for (int y = 0; y < _height + 10; y++)
             for (int x = 0; x < _width + 10; x++)
                 if (_reachedLocations[y, x] is true)
                     _mapArray[y, x] = '*';
 
-
         _mapArray[_currentLocation!.Y, _currentLocation.X] = 'P';
+
 
         StringBuilder stringBuilder = new StringBuilder();
         for (int y = 0; y < _height + 10; y++)
@@ -360,7 +417,6 @@ class Labyrinth
 
     private void PrintDynamicMap()
     {
-        //Just for debug//
         for (int y = 0; y < _height + 10; y++)
             for (int x = 0; x < _width + 10; x++)
                 if (_reachedLocations[y, x] is true)
@@ -368,8 +424,9 @@ class Labyrinth
 
         _mapArray[_currentLocation!.Y, _currentLocation.X] = 'P';
 
+
         int width = Console.BufferWidth;
-        int height = Console.BufferHeight - 2;
+        int height = Console.WindowHeight;
 
         StringBuilder stringBuilder = new StringBuilder();
         for (int h = _currentLocation.Y - height / 2; h < _currentLocation.Y + height / 2; h++)
