@@ -22,7 +22,7 @@ public class ServerResponse
     }
 
     /// <summary>
-    /// Splits the string-response in StatusType and Massage.
+    /// Splits the string-response in StatusType and Message.
     /// </summary>
     public static ServerResponse ParseResponse(string? response)
     {
