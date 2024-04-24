@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 
@@ -89,101 +88,101 @@ class Labyrinth
     }
 
 
-    #region Benchmark
-    private int requests = 0;
+    //#region Benchmark
+    //private int requests = 0;
 
-    public void BenchmarkGameLoop()
-    {
-        Stopwatch stopwatch = new Stopwatch();
-        long console = 0;
-        long botAlgorithm = 0;
-        long getResponse = 0;
-        long updateCurrentLocation = 0;
-        long updateMap = 0;
-        long updateGraph = 0;
-        long printMap = 0;
-        long loop = 0;
+    //public void BenchmarkGameLoop()
+    //{
+    //    Stopwatch stopwatch = new Stopwatch();
+    //    long console = 0;
+    //    long botAlgorithm = 0;
+    //    long getResponse = 0;
+    //    long updateCurrentLocation = 0;
+    //    long updateMap = 0;
+    //    long updateGraph = 0;
+    //    long printMap = 0;
+    //    long loop = 0;
 
-        while (!_gameWon)
-        {
-            stopwatch.Start();
-            Console.SetCursorPosition(0, 0);
-            Console.CursorVisible = false;
-            stopwatch.Stop();
-            console += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
+    //    while (!_gameWon)
+    //    {
+    //        stopwatch.Start();
+    //        Console.SetCursorPosition(0, 0);
+    //        Console.CursorVisible = false;
+    //        stopwatch.Stop();
+    //        console += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
 
-            stopwatch.Start();
-            List<string> commands = _botAlgorithm.RunBenchmark(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon);
-            SendCommands(commands);
-            stopwatch.Stop();
-            botAlgorithm += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
-            requests++; // +1 for the print command
-            requests += commands.Count;
+    //        stopwatch.Start();
+    //        List<string> commands = _botAlgorithm.RunBenchmark(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon);
+    //        SendCommands(commands);
+    //        stopwatch.Stop();
+    //        botAlgorithm += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
+    //        requests++; // +1 for the print command
+    //        requests += commands.Count;
 
-            stopwatch.Start();
-            GetResponse();
-            stopwatch.Stop();
-            getResponse += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
+    //        stopwatch.Start();
+    //        GetResponse();
+    //        stopwatch.Stop();
+    //        getResponse += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
 
-            stopwatch.Start();
-            UpdateCurrentLocation();
-            stopwatch.Stop();
-            updateCurrentLocation += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
+    //        stopwatch.Start();
+    //        UpdateCurrentLocation();
+    //        stopwatch.Stop();
+    //        updateCurrentLocation += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
 
-            stopwatch.Start();
-            UpdateMap();
-            stopwatch.Stop();
-            updateMap += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
+    //        stopwatch.Start();
+    //        UpdateMap();
+    //        stopwatch.Stop();
+    //        updateMap += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
 
-            stopwatch.Start();
-            UpdateGraph();
-            stopwatch.Stop();
-            updateGraph += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
+    //        stopwatch.Start();
+    //        UpdateGraph();
+    //        stopwatch.Stop();
+    //        updateGraph += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
 
-            stopwatch.Start();
-            //PrintStaticMap();
-            PrintDynamicMap();
-            stopwatch.Stop();
-            printMap += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
-            loop++;
-        }
+    //        stopwatch.Start();
+    //        //PrintStaticMap();
+    //        PrintDynamicMap();
+    //        stopwatch.Stop();
+    //        printMap += stopwatch.ElapsedTicks;
+    //        stopwatch.Reset();
+    //        loop++;
+    //    }
 
-        Enter();
+    //    Enter();
 
-        ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
-        Console.WriteLine(response.Message + '\n');
+    //    ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
+    //    Console.WriteLine(response.Message + '\n');
 
-        long totalticks = console + botAlgorithm + getResponse + updateCurrentLocation + updateMap + updateGraph + printMap;
-        Console.WriteLine($"ConsoleSettings:\t{console / 1000,10}ms\t{getPercent(totalticks, console):F2}%");
-        Console.WriteLine($"Algorithm:\t\t{botAlgorithm / 1000,10}ms\t{getPercent(totalticks, botAlgorithm):F2}%");
-        Console.WriteLine($"GetResponse:\t\t{getResponse / 1000,10}ms\t{getPercent(totalticks, getResponse):F2}%");
-        Console.WriteLine($"UpdateCurrentLocation:\t{updateCurrentLocation / 1000,10}ms\t{getPercent(totalticks, updateCurrentLocation):F2}%");
-        Console.WriteLine($"UpdateMap:\t\t{updateMap / 1000,10}ms\t{getPercent(totalticks, updateMap):F2}%");
-        Console.WriteLine($"UpdateGraph:\t\t{updateGraph / 1000,10}ms\t{getPercent(totalticks, updateGraph):F2}%");
-        Console.WriteLine($"PrintMap:\t\t{printMap / 1000,10}ms\t{getPercent(totalticks, printMap):F2}%\n");
+    //    long totalticks = console + botAlgorithm + getResponse + updateCurrentLocation + updateMap + updateGraph + printMap;
+    //    Console.WriteLine($"ConsoleSettings:\t{console / 1000,10}ms\t{getPercent(totalticks, console):F2}%");
+    //    Console.WriteLine($"Algorithm:\t\t{botAlgorithm / 1000,10}ms\t{getPercent(totalticks, botAlgorithm):F2}%");
+    //    Console.WriteLine($"GetResponse:\t\t{getResponse / 1000,10}ms\t{getPercent(totalticks, getResponse):F2}%");
+    //    Console.WriteLine($"UpdateCurrentLocation:\t{updateCurrentLocation / 1000,10}ms\t{getPercent(totalticks, updateCurrentLocation):F2}%");
+    //    Console.WriteLine($"UpdateMap:\t\t{updateMap / 1000,10}ms\t{getPercent(totalticks, updateMap):F2}%");
+    //    Console.WriteLine($"UpdateGraph:\t\t{updateGraph / 1000,10}ms\t{getPercent(totalticks, updateGraph):F2}%");
+    //    Console.WriteLine($"PrintMap:\t\t{printMap / 1000,10}ms\t{getPercent(totalticks, printMap):F2}%\n");
 
-        _botAlgorithm.allTicks = _botAlgorithm.getHoles + _botAlgorithm.pathFinding + _botAlgorithm.parseChords;
-        Console.WriteLine($"GetHoles:\t\t{_botAlgorithm.getHoles / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.getHoles):F2}%");
-        Console.WriteLine($"PathFinding:\t\t{_botAlgorithm.pathFinding / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.pathFinding):F2}%");
-        Console.WriteLine($"ParseChords:\t\t{_botAlgorithm.parseChords / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.parseChords):F2}%\n");
+    //    _botAlgorithm.allTicks = _botAlgorithm.getHoles + _botAlgorithm.pathFinding + _botAlgorithm.parseChords;
+    //    Console.WriteLine($"GetHoles:\t\t{_botAlgorithm.getHoles / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.getHoles):F2}%");
+    //    Console.WriteLine($"PathFinding:\t\t{_botAlgorithm.pathFinding / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.pathFinding):F2}%");
+    //    Console.WriteLine($"ParseChords:\t\t{_botAlgorithm.parseChords / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.parseChords):F2}%\n");
 
-        decimal rps = requests / decimal.Parse(response.Message.Substring(response.Message.IndexOf("in ") + 2, response.Message.IndexOf(" secs.") - response.Message.IndexOf("in ") - 2));
-        Console.WriteLine($"Total Requests: {requests}\nRequests per sec: {rps:F2}.");
-        Console.WriteLine("gameLoops: " + loop);
-    }
+    //    decimal rps = requests / decimal.Parse(response.Message.Substring(response.Message.IndexOf("in ") + 2, response.Message.IndexOf(" secs.") - response.Message.IndexOf("in ") - 2));
+    //    Console.WriteLine($"Total Requests: {requests}\nRequests per sec: {rps:F2}.");
+    //    Console.WriteLine("gameLoops: " + loop);
+    //}
 
-    private double getPercent(long allTicks, long item)
-    {
-        return (((double)item / 1000) / ((double)allTicks / 1000) * 100);
-    }
-    #endregion
+    //private double getPercent(long allTicks, long item)
+    //{
+    //    return (((double)item / 1000) / ((double)allTicks / 1000) * 100);
+    //}
+    //#endregion
 
 
     #region Commands
