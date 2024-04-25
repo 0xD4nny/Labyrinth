@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Text;
 
 class Labyrinth
 {
@@ -12,27 +11,26 @@ class Labyrinth
     private readonly StreamWriter _writer;
 
     private readonly int _width, _height;
-    private readonly char[,] _mapArray;
-    private readonly bool[,] _reachedLocations;
 
-    private readonly BotAlgorithm _botAlgorithm;
     private bool _gameWon;
+
+    private Grid _grid;
+    private readonly SearchTargets _getTargets;
+    private readonly AStar _algorithm;
 
     public Labyrinth(int width, int height)
     {
         _width = width;
         _height = height;
-
-        _mapArray = new char[height + 10, width + 10];
-        _reachedLocations = new bool[height + 10, width + 10];
+        _grid = new Grid(_width, _height);
+        _algorithm = new AStar(_grid);
+        _getTargets = new SearchTargets(_grid);
 
         _client = new TcpClient("labyrinth.ctrl-s.de", 50000);
         _reader = new StreamReader(_client.GetStream());
         _writer = new StreamWriter(_client.GetStream());
         _client.NoDelay = true;
         _writer.AutoFlush = false;
-
-        _botAlgorithm = new BotAlgorithm();
 
         InitializeGame();
     }
@@ -54,12 +52,17 @@ class Labyrinth
 
         GetResponse();
 
-        UpdateCurrentLocation();
+        UpdateCurrentNode();
         UpdateMap();
-        UpdateGraph();
 
-        //PrintStaticMap();
-        PrintDynamicMap();
+        _grid.PrintDynamicMap(_currentNode);
+    }
+
+    private void GetWinnerMessage()
+    {
+        Enter(); // If we come to this point, we sit on 'T', thats why we send enter here to the server. To get the last message and end the game.
+        ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
+        Console.WriteLine(response.Message);
     }
 
     public void GameLoop()
@@ -69,120 +72,23 @@ class Labyrinth
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
 
-            SendCommands(_botAlgorithm.Run(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon));
+            _getTargets.Run(_currentNode, ref _gameWon);
+            Node goal = _getTargets.Targets.Pop(); // needs fix!
+            List<Node> bestPath = _algorithm.Run(_currentNode, goal);
+
+            List<string> commands = ParseNodeToDirString(bestPath);
+            SendCommands(commands);
 
             GetResponse();
 
-            UpdateCurrentLocation();
+            UpdateCurrentNode();
             UpdateMap();
-            UpdateGraph();
 
-            //PrintStaticMap();
-            PrintDynamicMap();
+            _grid.PrintDynamicMap(_currentNode);
         }
-
-        //the following three lines are the winningprocess. The game and the program ends after this process.
-        Enter();
-        ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
-        Console.WriteLine(response.Message);
+        
+        GetWinnerMessage();
     }
-
-
-    //#region Benchmark
-    //private int requests = 0;
-
-    //public void BenchmarkGameLoop()
-    //{
-    //    Stopwatch stopwatch = new Stopwatch();
-    //    long console = 0;
-    //    long botAlgorithm = 0;
-    //    long getResponse = 0;
-    //    long updateCurrentLocation = 0;
-    //    long updateMap = 0;
-    //    long updateGraph = 0;
-    //    long printMap = 0;
-    //    long loop = 0;
-
-    //    while (!_gameWon)
-    //    {
-    //        stopwatch.Start();
-    //        Console.SetCursorPosition(0, 0);
-    //        Console.CursorVisible = false;
-    //        stopwatch.Stop();
-    //        console += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-
-    //        stopwatch.Start();
-    //        List<string> commands = _botAlgorithm.RunBenchmark(_currentLocation!, _mapArray, _reachedLocations, ref _gameWon);
-    //        SendCommands(commands);
-    //        stopwatch.Stop();
-    //        botAlgorithm += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-    //        requests++; // +1 for the print command
-    //        requests += commands.Count;
-
-    //        stopwatch.Start();
-    //        GetResponse();
-    //        stopwatch.Stop();
-    //        getResponse += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-
-    //        stopwatch.Start();
-    //        UpdateCurrentLocation();
-    //        stopwatch.Stop();
-    //        updateCurrentLocation += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-
-    //        stopwatch.Start();
-    //        UpdateMap();
-    //        stopwatch.Stop();
-    //        updateMap += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-
-    //        stopwatch.Start();
-    //        UpdateGraph();
-    //        stopwatch.Stop();
-    //        updateGraph += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-
-    //        stopwatch.Start();
-    //        //PrintStaticMap();
-    //        PrintDynamicMap();
-    //        stopwatch.Stop();
-    //        printMap += stopwatch.ElapsedTicks;
-    //        stopwatch.Reset();
-    //        loop++;
-    //    }
-
-    //    Enter();
-
-    //    ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
-    //    Console.WriteLine(response.Message + '\n');
-
-    //    long totalticks = console + botAlgorithm + getResponse + updateCurrentLocation + updateMap + updateGraph + printMap;
-    //    Console.WriteLine($"ConsoleSettings:\t{console / 1000,10}ms\t{getPercent(totalticks, console):F2}%");
-    //    Console.WriteLine($"Algorithm:\t\t{botAlgorithm / 1000,10}ms\t{getPercent(totalticks, botAlgorithm):F2}%");
-    //    Console.WriteLine($"GetResponse:\t\t{getResponse / 1000,10}ms\t{getPercent(totalticks, getResponse):F2}%");
-    //    Console.WriteLine($"UpdateCurrentLocation:\t{updateCurrentLocation / 1000,10}ms\t{getPercent(totalticks, updateCurrentLocation):F2}%");
-    //    Console.WriteLine($"UpdateMap:\t\t{updateMap / 1000,10}ms\t{getPercent(totalticks, updateMap):F2}%");
-    //    Console.WriteLine($"UpdateGraph:\t\t{updateGraph / 1000,10}ms\t{getPercent(totalticks, updateGraph):F2}%");
-    //    Console.WriteLine($"PrintMap:\t\t{printMap / 1000,10}ms\t{getPercent(totalticks, printMap):F2}%\n");
-
-    //    _botAlgorithm.allTicks = _botAlgorithm.getHoles + _botAlgorithm.pathFinding + _botAlgorithm.parseChords;
-    //    Console.WriteLine($"GetHoles:\t\t{_botAlgorithm.getHoles / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.getHoles):F2}%");
-    //    Console.WriteLine($"PathFinding:\t\t{_botAlgorithm.pathFinding / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.pathFinding):F2}%");
-    //    Console.WriteLine($"ParseChords:\t\t{_botAlgorithm.parseChords / 1000,10}ms\t{getPercent(_botAlgorithm.allTicks, _botAlgorithm.parseChords):F2}%\n");
-
-    //    decimal rps = requests / decimal.Parse(response.Message.Substring(response.Message.IndexOf("in ") + 2, response.Message.IndexOf(" secs.") - response.Message.IndexOf("in ") - 2));
-    //    Console.WriteLine($"Total Requests: {requests}\nRequests per sec: {rps:F2}.");
-    //    Console.WriteLine("gameLoops: " + loop);
-    //}
-
-    //private double getPercent(long allTicks, long item)
-    //{
-    //    return (((double)item / 1000) / ((double)allTicks / 1000) * 100);
-    //}
-    //#endregion
 
 
     #region Commands
@@ -313,26 +219,20 @@ class Labyrinth
     #endregion
 
 
-    #region Get Server Response
     private ServerResponse? _coordinatesResponse;
     private ServerResponse[]? _mapResponse = new ServerResponse[11];
-
     private void GetResponse()
     {
-        _reader.ReadLine(); // we dont need the first line, so we read it just out, without saveing.
+        _reader.ReadLine(); // we dont need the first line, so we read it just out.
 
         _coordinatesResponse = ServerResponse.ParseResponse(_reader.ReadLine());
 
         for (int i = 0; i < _mapResponse!.Length; i++)
             _mapResponse[i] = ServerResponse.ParseResponse(_reader.ReadLine());
     }
-    #endregion
 
-
-    #region Process Server Response
-    private Location? _currentLocation;
-
-    private void UpdateCurrentLocation()
+    private Node _currentNode;
+    private void UpdateCurrentNode()
     {
         if (_coordinatesResponse is null)
             throw new NullReferenceException("_coordinates can't be null. Disconnected?");
@@ -340,123 +240,41 @@ class Labyrinth
         int x = 5 + int.Parse(_coordinatesResponse.Message.Substring(_coordinatesResponse.Message.IndexOf("X:") + 2, _coordinatesResponse.Message.IndexOf(";Y") - _coordinatesResponse.Message.IndexOf("X:") - 2));
         int y = 5 + int.Parse(_coordinatesResponse.Message.Substring(_coordinatesResponse.Message.IndexOf("Y:") + 2, _coordinatesResponse.Message.IndexOf(";Z") - _coordinatesResponse.Message.IndexOf("Y:") - 2));
 
-        _currentLocation = new Location(x, y, _mapArray);
+        _currentNode = new Node(x, y);
         Console.WriteLine($"X: {x} Y: {y}");
     }
-
     private void UpdateMap()
     {
-        if (_currentLocation is null)
-            throw new NullReferenceException("_currentLocation can't be null. Disconnected?");
-
         for (int y = 0; y < 11; y++)
             for (int x = 0; x < 11; x++)
-                _mapArray[_currentLocation!.Y + y - 5, _currentLocation.X + x - 5] = _mapResponse![y].Message[x];
-
+                _grid._map[_currentNode.Y + y - 5, _currentNode.X + x - 5] = _mapResponse![y].Message[x];
     }
 
-    private void UpdateGraph()
+    /// <summary>
+    /// This methode is to parse the result of the pathfinding method in strings for the responses.
+    /// </summary>
+    private List<string> ParseNodeToDirString(List<Node> path)
     {
-        if (_currentLocation is null)
-            throw new NullReferenceException("_currentLocation can't be null. Disconnected?");
+        string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
+        List<string> dirs = new List<string>();
+        Node current = path[0];
 
-        int currentX, currentY;
+        path.Remove(current);
 
-        for (int y = 0; y < 11; y++)
-            for (int x = 0; x < 11; x++)
+        while (path.Count > 0)
+        {
+            Node next = path[0];
+            path.Remove(next);
+            for (int i = 0; i < 4; i++)
             {
-                currentX = _currentLocation.X + x - 5;
-                currentY = _currentLocation.Y + y - 5;
-                if (!_botAlgorithm.Graph.ContainsKey((currentX, currentY)) &&
-                    currentX < _width + 10 && currentY < _height + 10 && currentX > 0 && currentY > 0 &&
-                    _mapArray[currentY, currentX] is not 'W' && _mapArray[currentY, currentX] is not '\0' && _mapArray[currentY, currentX] is not '.')
+                if (current.X + _grid.DIRS[i].X == next.X && current.Y + _grid.DIRS[i].Y == next.Y)
                 {
-                    _botAlgorithm.Graph[(currentX, currentY)] = new Location(currentX, currentY, _mapArray);
+                    dirs.Add(_dirs[i]);
+                    current = next;
                 }
             }
-    }
-
-    private void PrintStaticMap()
-    {
-        for (int y = 0; y < _height + 10; y++)
-            for (int x = 0; x < _width + 10; x++)
-                if (_reachedLocations[y, x] is true)
-                    _mapArray[y, x] = '*';
-
-        _mapArray[_currentLocation!.Y, _currentLocation.X] = 'P';
-
-
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int y = 0; y < _height + 10; y++)
-        {
-            for (int x = 0; x < _width + 10; x++)
-            {
-                switch (_mapArray[y, x])
-                {
-                    case 'W':
-                        stringBuilder.Append('█');
-                        break;
-                    case '\0':
-                        stringBuilder.Append('?');
-                        break;
-                    case '.':
-                        stringBuilder.Append('░');
-                        break;
-                    default:
-                        stringBuilder.Append(_mapArray[y, x]);
-                        break;
-                }
-            }
-
-            stringBuilder.Append('\n');
         }
-
-        Console.WriteLine(stringBuilder.ToString());
+        return dirs;
     }
-
-    private void PrintDynamicMap()
-    {
-        for (int y = 0; y < _height + 10; y++)
-            for (int x = 0; x < _width + 10; x++)
-                if (_reachedLocations[y, x] is true)
-                    _mapArray[y, x] = '*';
-
-        _mapArray[_currentLocation!.Y, _currentLocation.X] = 'P';
-
-
-        int width = Console.BufferWidth;
-        int height = Console.WindowHeight - 3;
-
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int h = _currentLocation.Y - height / 2; h < _currentLocation.Y + height / 2; h++)
-        {
-            for (int w = _currentLocation.X - width / 2; w < _currentLocation.X + width / 2; w++)
-            {
-                if (h < _height + 10 && w < _width + 10 && h > 0 && w > 0)
-                    switch (_mapArray[h, w])
-                    {
-                        case 'W':
-                            stringBuilder.Append('█');
-                            break;
-                        case '\0':
-                            stringBuilder.Append('?');
-                            break;
-                        case '.':
-                            stringBuilder.Append('░');
-                            break;
-                        default:
-                            stringBuilder.Append(_mapArray[h, w]);
-                            break;
-                    }
-                else
-                    stringBuilder.Append('░');
-            }
-
-            stringBuilder.Append('\n');
-        }
-
-        Console.WriteLine(stringBuilder.ToString());
-    }
-    #endregion
 
 }

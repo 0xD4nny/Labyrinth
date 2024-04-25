@@ -10,7 +10,7 @@ public enum Statustype
     Won = 8,
     Coordinates = 9,
 }
-public class ServerResponse
+class ServerResponse
 {
     public readonly Statustype StatusType;
     public readonly string Message;
