@@ -26,17 +26,17 @@ class NetworkCommunication
         _width = width;
         _height = height;
 
-        InizializeCommunikation(_writer);
+        InizializeCommunikation();
     }
 
 
     /// <summary>
     /// This method configer all important settings and reads all messages, allowing us to directly play the game.
     /// </summary>
-    private void InizializeCommunikation(StreamWriter writer)
+    private void InizializeCommunikation()
     {
-        writer.WriteLine($"WIDTH {_width}\nHEIGHT {_height}\nDEPTH 1\nSTART");
-        writer.Flush();
+        _writer.WriteLine($"WIDTH {_width}\nHEIGHT {_height}\nDEPTH 1\nSTART");
+        _writer.Flush();
 
         ServerResponse? response;
         do
@@ -75,7 +75,7 @@ class NetworkCommunication
     /// </summary>
     public void GetWinnerMessage()
     {
-        Enter(); // If we come to this point, we sit on 'T', thats why we send enter here to the server. To get the last message and end the game.
+        Enter();
         ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
         Console.WriteLine(response.Message);
     }
