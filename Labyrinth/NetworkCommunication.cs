@@ -10,9 +10,9 @@ class NetworkCommunication
     private readonly StreamReader _reader;
     private readonly StreamWriter _writer;
 
-    private readonly int _width, _height;
-
     private ServerResponse[]? _mapResponse = new ServerResponse[11];
+
+    private readonly int _width, _height;
 
     public NetworkCommunication(int width, int height)
     {
@@ -185,4 +185,5 @@ class NetworkCommunication
         _writer.Flush();
     }
     #endregion
+
 }

@@ -39,7 +39,7 @@ namespace Labyrinth
 
         public bool InPView(Node node, Node currentNode)
         {
-            return currentNode.X - 5 <= node.X && node.X < currentNode.X + 5 && currentNode.Y - 5 <= node.Y && node.Y < currentNode.Y + 5;
+            return currentNode.X - 5 < node.X && node.X < currentNode.X + 5 && currentNode.Y - 5 < node.Y && node.Y < currentNode.Y + 5;
         }
 
         public void UpdateCurrentNode(ServerResponse responseCoordinates)
@@ -82,7 +82,7 @@ namespace Labyrinth
             {
                 for (int w = _currentNode.X - width / 2; w < _currentNode.X + width / 2; w++)
                 {
-                    if (h < _height && w < _width && h > 0 && w > 0)
+                    if (h < _height - 1 && w < _width - 1 && h > 0 && w > 0)
                         switch (MapGrid[h, w])
                         {
                             case 'W':
