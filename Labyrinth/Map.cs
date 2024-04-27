@@ -2,6 +2,9 @@
 
 namespace Labyrinth
 {
+    /// <summary>
+    /// This class holds all information from the server that we need for the algorithms and the map view, and it provides numerous functions for managing these algorithms.
+    /// </summary>
     class Map
     {
         public readonly HashSet<Node> ReachedNodes = new HashSet<Node>();

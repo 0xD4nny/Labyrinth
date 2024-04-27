@@ -5,11 +5,12 @@ class SearchNextTarget
 {
     public Stack<Node> Next = new Stack<Node>();
 
+    private HashSet<Node> _reachable = new HashSet<Node>();
+
     private (bool tDetected, Node goal) _tTarget;
 
     private readonly Map _map;
 
-    private HashSet<Node> _reachable = new HashSet<Node>();
     public SearchNextTarget(Map map)
     {
         _map = map;

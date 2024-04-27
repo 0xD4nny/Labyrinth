@@ -10,6 +10,10 @@ public enum Statustype
     Won = 8,
     Coordinates = 9,
 }
+
+/// <summary>
+/// This class is to hold the server response in a gerneric way.
+/// </summary>
 class ServerResponse
 {
     public readonly Statustype StatusType;

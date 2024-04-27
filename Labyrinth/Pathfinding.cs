@@ -1,10 +1,13 @@
 ﻿namespace Labyrinth;
 
-class AStar
+/// <summary>
+/// We use A* to find the best path from player to target
+/// </summary>
+class Pathfinding
 {
     private readonly Map _map;
 
-    public AStar(Map map)
+    public Pathfinding(Map map)
     {
         _map = map;
     }

@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 
 namespace Labyrinth;
+
 /// <summary>
 /// Manages the network communication with the server and handles the commands.
 /// </summary>
