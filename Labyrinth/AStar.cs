@@ -1,5 +1,4 @@
 ﻿namespace Labyrinth;
-//Todo: Fix.
 
 class AStar
 {

@@ -8,4 +8,5 @@ class Program
         Labyrinth.InitializeGame();
         Labyrinth.GameLoop();
     }
+
 }
