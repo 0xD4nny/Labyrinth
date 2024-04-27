@@ -85,7 +85,7 @@ class NetworkCommunication
     /// <summary>
     /// This method is to parse a list of coordinates to a list of directions strings like "UP" and "DOWN".
     /// </summary>
-    private List<string> ParseNodeToString(List<Node> path, Map map)
+    private List<string> ParseNodeToCommand(List<Node> path, Map map)
     {
         string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
         List<string> dirs = new List<string>();
@@ -115,7 +115,7 @@ class NetworkCommunication
     /// </summary>
     public void SendCommands(List<Node> path, Map map)
     {
-        List<string> commands = ParseNodeToString(path, map);
+        List<string> commands = ParseNodeToCommand(path, map);
         int count = commands.Count;
 
         if (count < 1)

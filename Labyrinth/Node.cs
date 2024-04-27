@@ -1,6 +1,6 @@
 ﻿namespace Labyrinth;
 
-readonly struct Node
+class Node
 {
     public readonly int X, Y;
     public Node(int x, int y)
@@ -10,18 +10,22 @@ readonly struct Node
     }
 
 
-    //public override bool Equals(object obj)
-    //{
-    //    if (obj == null || GetType() != obj.GetType())
-    //        return false;
+    public override bool Equals(object? obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+            return false;
 
-    //    Node other = obj as Node;
-    //    return X == other.X && Y == other.Y;
-    //}
+        Node? other = obj as Node;
+        
+        if (other == null) 
+            return false;
 
-    //public override int GetHashCode()
-    //{
-    //    return HashCode.Combine(X, Y);
-    //}
+        return X == other.X && Y == other.Y;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(X, Y);
+    }
 
 }

@@ -1,5 +1,6 @@
 ﻿namespace Labyrinth;
 //Todo: Fix.
+
 class AStar
 {
     private readonly Map _map;

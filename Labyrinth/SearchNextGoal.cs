@@ -83,7 +83,7 @@ class SearchNextGoal
             foreach (Node dir in _map.DIRS)
             {
                 Node next = new Node(current.X + dir.X, current.Y + dir.Y);
-                if (_map.InBounds(next) && !reached.Contains(next) && _map.NoWall(next) && _map.InPView(next,pPos))// need debug here 
+                if (_map.InBounds(next) && !reached.Contains(next) && _map.NoWall(next) && _map.InPView(next,pPos))
                 {
                     queue.Enqueue(next);
                     reached.Add(next);
