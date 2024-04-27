@@ -16,8 +16,8 @@ class Node
             return false;
 
         Node? other = obj as Node;
-        
-        if (other == null) 
+
+        if (other == null)
             return false;
 
         return X == other.X && Y == other.Y;

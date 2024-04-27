@@ -3,6 +3,10 @@
 using System;
 using System.Collections.Generic;
 
+/// <summary>
+/// This class manages most other classes needed to run the Labyrinth automatically. It uses the SearchNextTarget class to find all possible exits from the player's view and stores them in a stack.
+/// Then, we pop a target from the stack and pass it to the pathfinding class, which provides the best path as a list.
+/// /// </summary>
 class Labyrinth
 {
     private bool _gameWon;
@@ -13,7 +17,7 @@ class Labyrinth
     private readonly NetworkCommunication _networkCommunication;
     
     private readonly SearchNextTarget _searchNextTarget;
-    private readonly AStar _aStar;
+    private readonly Pathfinding _aStar;
 
     public Labyrinth(int width, int height)
     {
@@ -23,7 +27,7 @@ class Labyrinth
 
         _networkCommunication = new NetworkCommunication(_width,_height);
         _searchNextTarget = new SearchNextTarget(_map);
-        _aStar = new AStar(_map);
+        _aStar = new Pathfinding(_map);
     }
 
 
