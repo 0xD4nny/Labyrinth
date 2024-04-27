@@ -21,22 +21,33 @@ namespace Labyrinth
             MapGrid = new char[height, height];
         }
 
-
+        /// <summary>
+        /// Returns true if the specified node is within the defined bounds..
+        /// </summary>
         public bool InBounds(Node node)
         {
             return 0 <= node.X && node.X < _width && 0 <= node.Y && node.Y < _height;
         }
 
+        /// <summary>
+        /// Returns true if the specified node is Reached.
+        /// </summary>
         public bool IsReached(Node node)
         {
             return MapGrid[node.Y, node.X] == '*';
         }
 
+        /// <summary>
+        /// Returns true if the specified node is not: 'W', '\0', '.'.
+        /// </summary>
         public bool NoWall(Node node)
         {
             return !(MapGrid[node.Y, node.X] == 'W' || MapGrid[node.Y, node.X] == '\0' || MapGrid[node.Y, node.X] == '.');
         }
 
+        /// <summary>
+        /// Returns true if the specified node is within the player's view range, extending +5 units in all directions.
+        /// </summary>
         public bool InPView(Node node, Node currentNode)
         {
             return currentNode.X - 5 < node.X && node.X < currentNode.X + 5 && currentNode.Y - 5 < node.Y && node.Y < currentNode.Y + 5;
@@ -61,17 +72,20 @@ namespace Labyrinth
 
             for (int y = 0; y < 11; y++)
                 for (int x = 0; x < 11; x++)
-                    MapGrid[_currentNode.Y + y - 5, _currentNode.X + x - 5] = responseMap![y].Message[x];
+                    MapGrid[_currentNode.Y + y - 5, _currentNode.X + x - 5] = responseMap[y].Message[x];
         }
 
         public void PrintMap()
         {
+            if (_currentNode is null)
+                throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+
             for (int y = 0; y < _height; y++)
                 for (int x = 0; x < _width; x++)
                     if (ReachedNodes.Contains(new Node(x, y)))
                         MapGrid[y, x] = '*';
 
-            MapGrid[_currentNode!.Y, _currentNode.X] = 'P';
+            MapGrid[_currentNode.Y, _currentNode.X] = 'P';
 
 
             int width = Console.BufferWidth;

@@ -1,6 +1,6 @@
 ﻿namespace Labyrinth;
 
-//Todo: we collect to much targets atm, fit it.
+//Todo: we collect to much targets atm, fix it.
 class SearchNextTarget
 {
     public Stack<Node> Next = new Stack<Node>();
@@ -16,7 +16,7 @@ class SearchNextTarget
     }
 
     /// <summary>
-    /// This method helps the class determine if the next goal is reachable.
+    /// This method helps the class determine if the next target is reachable.
     /// Note: we search with this method to, if we found the target'T' and take there location and set a flag on true. 
     /// </summary>
     public void CheckReachability(Node current)
@@ -47,7 +47,7 @@ class SearchNextTarget
     }
 
     /// <summary>
-    /// This method iterates along the edge of the field of view once and returns the first empty field found at the edge.
+    /// This method iterates along the edge of the field of view once and put them in a Stack if they are reachable.
     /// </summary>
     public void CollectTargets(Node currentNode, ref bool gameWon)
     {
@@ -58,7 +58,7 @@ class SearchNextTarget
             return;
         }
 
-        // + 5 to start in corner botton right (Rechts unten gewichtet)
+        // + 5 to start in corner botton right.
         int searchPointX = currentNode.X + 5;
         int searchPointY = currentNode.Y + 5;
 
