@@ -21,6 +21,7 @@ class ServerResponse
         Message = message;
     }
 
+
     /// <summary>
     /// Splits the string-response in StatusType and Message.
     /// </summary>
@@ -32,8 +33,12 @@ class ServerResponse
         return new ServerResponse(ConvertResponse(response.Substring(0, 1)), response.Substring(2));
     }
 
+    /// <summary>
+    /// Converts the first character of the response string into a Statustype enumeration.
+    /// </summary>
     private static Statustype ConvertResponse(string response)
     {
+        // Subtract 48 from the ASCII value of the first character to convert it to its corresponding integer (0-9)
         return (Statustype)(response[0] - 48);
     }
 

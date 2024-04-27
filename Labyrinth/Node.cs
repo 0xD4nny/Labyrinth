@@ -5,9 +5,10 @@ readonly struct Node
     public readonly int X, Y;
     public Node(int x, int y)
     {
-        X = x;
+        X = x; 
         Y = y;
     }
+
 
     //public override bool Equals(object obj)
     //{
@@ -17,8 +18,10 @@ readonly struct Node
     //    Node other = obj as Node;
     //    return X == other.X && Y == other.Y;
     //}
+
     //public override int GetHashCode()
     //{
     //    return HashCode.Combine(X, Y);
     //}
+
 }

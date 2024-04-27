@@ -5,6 +5,7 @@ class Program
     static void Main()
     {
         Labyrinth Labyrinth = new Labyrinth(512, 512);
+        Labyrinth.InitializeGame();
         Labyrinth.GameLoop();
     }
 }

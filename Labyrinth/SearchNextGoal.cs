@@ -1,19 +1,18 @@
 ﻿namespace Labyrinth;
 
-class SearchTargets
+//Todo: reWrite this class and reverse his strategy.
+class SearchNextGoal
 {
-    private readonly Grid _grid;
-
-    public SearchTargets(Grid grid)
-    {
-        _grid = grid;
-    }
-
     public Stack<Node> Targets = new Stack<Node>();
 
     private (bool tDetected, int x, int y) _tTarget;
 
-    //Schreib am Besten beide Methoden um und dreh sie um, so dass zuerst der Flootfill startet und dann fahren wir den rand ab und sammeln nodes ein. 
+    private readonly Map _map;
+
+    public SearchNextGoal(Map map)
+    {
+        _map = map;
+    }
 
 
     /// <summary>
@@ -35,7 +34,7 @@ class SearchTargets
         for (int i = 0; i < 10; i++)
         {
             Node leftSearch = new Node(searchPointX, searchPointY);
-            if (_grid.NoWall(leftSearch) && !_grid.IsReached(leftSearch) && !Targets.Contains(leftSearch) && IsReachable(leftSearch, currentNode))
+            if (_map.NoWall(leftSearch) && !_map.IsReached(leftSearch) && !Targets.Contains(leftSearch) && IsReachable(leftSearch, currentNode))
                     Targets.Push(leftSearch);
             searchPointX--;
         }
@@ -43,7 +42,7 @@ class SearchTargets
         for (int i = 0; i < 10; i++)
         {
             Node upSearch = new Node(searchPointX, searchPointY);
-            if (_grid.NoWall(upSearch) && !_grid.IsReached(upSearch) && _grid.InBounds(upSearch) && !Targets.Contains(upSearch) && IsReachable(upSearch, currentNode))
+            if (_map.NoWall(upSearch) && !_map.IsReached(upSearch) && _map.InBounds(upSearch) && !Targets.Contains(upSearch) && IsReachable(upSearch, currentNode))
                 Targets.Push(upSearch);
             searchPointY--;
         }
@@ -51,7 +50,7 @@ class SearchTargets
         for (int i = 0; i < 10; i++)
         {
             Node rightSearch = new Node(searchPointX, searchPointY);
-            if (_grid.NoWall(rightSearch) && !_grid.IsReached(rightSearch) && _grid.InBounds(rightSearch) && !Targets.Contains(rightSearch) && IsReachable(rightSearch, currentNode))
+            if (_map.NoWall(rightSearch) && !_map.IsReached(rightSearch) && _map.InBounds(rightSearch) && !Targets.Contains(rightSearch) && IsReachable(rightSearch, currentNode))
                 Targets.Push(rightSearch);
             searchPointX++;
         }
@@ -59,7 +58,7 @@ class SearchTargets
         for (int i = 0; i < 10; i++)
         {
             Node downSearch = new Node(searchPointX, searchPointY);
-            if (_grid.NoWall(downSearch) && !_grid.IsReached(downSearch) && _grid.InBounds(downSearch) && !Targets.Contains(downSearch) && IsReachable(downSearch, currentNode))
+            if (_map.NoWall(downSearch) && !_map.IsReached(downSearch) && _map.InBounds(downSearch) && !Targets.Contains(downSearch) && IsReachable(downSearch, currentNode))
                 Targets.Push(downSearch);
             searchPointY++;
         }
@@ -67,7 +66,7 @@ class SearchTargets
     }
 
     /// <summary>
-    /// This method helps getTarget determine if it is reachable.
+    /// This method helps the class determine if the next goal is reachable.
     /// Note: we search with this method to, if we found the target'T' and take there location and set a flag on true. 
     /// </summary>
     private bool IsReachable(Node current,Node pPos)
@@ -81,22 +80,23 @@ class SearchTargets
             current = queue.Dequeue();
             reached.Add(current);
 
-            foreach (Node dir in _grid.DIRS)
+            foreach (Node dir in _map.DIRS)
             {
                 Node next = new Node(current.X + dir.X, current.Y + dir.Y);
-                if (!reached.Contains(next) && _grid.NoWall(next) && _grid.InPView(next,pPos))// need debug here 
+                if (_map.InBounds(next) && !reached.Contains(next) && _map.NoWall(next) && _map.InPView(next,pPos))// need debug here 
                 {
                     queue.Enqueue(next);
                     reached.Add(next);
                 }
-                if (_grid.InBounds(next) && _grid._map[next.Y, next.X] is 'T')
+                if (_map.InBounds(next) && _map.MapGrid[next.Y, next.X] is 'T')
                     _tTarget = (true, next.X, next.Y);
 
-                if (_grid.InBounds(next) && _grid._map[next.Y, next.X] is 'P')
+                if (_map.InBounds(next) && _map.MapGrid[next.Y, next.X] is 'P')
                     return true;
 
             }
         }
         return false;
     }
+
 }

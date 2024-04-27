@@ -1,11 +1,12 @@
 ﻿namespace Labyrinth;
-
+//Todo: Fix.
 class AStar
 {
-    private readonly Grid _grid;
-    public AStar(Grid grid)
+    private readonly Map _map;
+
+    public AStar(Map map)
     {
-        _grid = grid;
+        _map = map;
     }
 
 
@@ -26,15 +27,15 @@ class AStar
         while (pQueue.Count > 0)
         {
             Node current = pQueue.Dequeue();
-            _grid.ReachedNodes.Add(current);
+            _map.ReachedNodes.Add(current);
 
             if ((current.X, current.Y) == (goal.X, goal.Y))
                 break;
 
-            foreach (Node dir in _grid.DIRS)
+            foreach (Node dir in _map.DIRS)
             {
                 Node next = new Node(current.X + dir.X, current.Y + dir.Y);
-                if (_grid.InBounds(next) && _grid.NoWall(next))
+                if (_map.InBounds(next) && _map.NoWall(next))
                 {
                     double newCost = _lastCost[current];
                     if (!_lastCost.ContainsKey(next) || newCost < _lastCost[next])
