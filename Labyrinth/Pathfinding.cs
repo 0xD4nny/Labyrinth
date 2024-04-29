@@ -18,19 +18,17 @@ class Pathfinding
     /// </summary>
     public List<Node> Run(Node start, Node goal)
     {
+        Dictionary<Node, int> _lastCost = new Dictionary<Node, int>();
         Dictionary<Node, Node> _bredKrumelPath = new Dictionary<Node, Node>();
-        Dictionary<Node, double> _lastCost = new Dictionary<Node, double>();
-        PriorityQueue<Node, double> pQueue = new PriorityQueue<Node, double>();
+        PriorityQueue<Node, int> pQueue = new PriorityQueue<Node, int>();
         
         pQueue.Enqueue(start, 0);
-
         _bredKrumelPath[start] = start;
         _lastCost[start] = 0;
 
         while (pQueue.Count > 0)
         {
             Node current = pQueue.Dequeue();
-            _map.ReachedNodes.Add(current);
 
             if ((current.X, current.Y) == (goal.X, goal.Y))
                 break;
@@ -40,11 +38,11 @@ class Pathfinding
                 Node next = new Node(current.X + dir.X, current.Y + dir.Y);
                 if (_map.InBounds(next) && _map.NoWall(next))
                 {
-                    double newCost = _lastCost[current];
+                    int newCost = _lastCost[current];
                     if (!_lastCost.ContainsKey(next) || newCost < _lastCost[next])
                     {
                         _lastCost[next] = newCost;
-                        double priority = newCost + Heuristic(next, goal);
+                        int priority = newCost + Heuristic(next, goal);
                         pQueue.Enqueue(next, priority);
                         _bredKrumelPath[next] = current;
                     }
@@ -69,7 +67,7 @@ class Pathfinding
     /// <summary>
     /// We use manhattan-distance for the heuristic.
     /// </summary>
-    private double Heuristic(Node start, Node goal)
+    private int Heuristic(Node start, Node goal)
     {
         return Math.Abs(start.X - goal.X) + Math.Abs(start.Y - goal.Y);
     }
