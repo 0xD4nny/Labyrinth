@@ -17,6 +17,7 @@ class Labyrinth
     private readonly NetworkCommunication _networkCommunication;
     
     private readonly SearchNextTarget _searchNextTarget;
+
     private readonly Pathfinding _aStar;
 
     public Labyrinth(int width, int height)
@@ -40,20 +41,16 @@ class Labyrinth
 
     public void GameLoop()
     {
-        if(_map._currentNode is null)
-            throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+        //if(_map.CurrentNode is null)
+        //    throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
         while (!_gameWon)
         {
             Console.SetCursorPosition(0, 0);
             Console.CursorVisible = false;
 
-            _searchNextTarget.CheckReachability(_map._currentNode);
-            _searchNextTarget.CollectTargets(_map._currentNode, ref _gameWon);
-            
-            Node target = _searchNextTarget.Next.Pop();
-            List<Node> bestPath = _aStar.Run(_map._currentNode, target);
-
+            Node target = _searchNextTarget.GetTarget(_map.CurrentNode, ref _gameWon);
+            List<Node> bestPath = _aStar.Run(_map.CurrentNode, target);
             _networkCommunication.SendCommands(bestPath, _map);
  
             _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());

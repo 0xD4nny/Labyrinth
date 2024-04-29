@@ -11,11 +11,11 @@ namespace Labyrinth
 
         public readonly Node[] DIRS = [new Node(1, 0), new Node(0, 1), new Node(-1, 0), new Node(0, -1)];
 
-        private int _width, _height;
+        public Node CurrentNode;
 
         public readonly char[,] MapGrid;
 
-        public Node? _currentNode;
+        private int _width, _height;
 
         public Map(int width, int height)
         {
@@ -29,7 +29,7 @@ namespace Labyrinth
         /// </summary>
         public bool InBounds(Node node)
         {
-            return 0 <= node.X && node.X < _width && 0 <= node.Y && node.Y < _height;
+            return 0 <= node.X && node.X <= _width && 0 <= node.Y && node.Y <= _height;
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace Labyrinth
         /// </summary>
         public bool IsReached(Node node)
         {
-            return MapGrid[node.Y, node.X] == '*';
+            return ReachedNodes.Contains(node);
         }
 
         /// <summary>
@@ -56,6 +56,24 @@ namespace Labyrinth
             return currentNode.X - 5 < node.X && node.X < currentNode.X + 5 && currentNode.Y - 5 < node.Y && node.Y < currentNode.Y + 5;
         }
 
+        public bool HasUndefineNeigbor(Node node)
+        {
+            foreach (Node dir in DIRS)
+                if (MapGrid[node.Y + dir.Y, node.X + dir.X] == '\0')
+                    return true;
+
+            return false;
+        }
+
+        public bool HasUnreachedNeigbor(Node node)
+        {
+            foreach (Node dir in DIRS)
+                if (!ReachedNodes.Contains(new Node(node.X + dir.X, node.Y + dir.Y)) && MapGrid[node.Y + dir.Y, node.X + dir.X] != 'W')
+                    return true;
+
+            return true;
+        }
+
         public void UpdateCurrentNode(ServerResponse responseCoordinates)
         {
             if (responseCoordinates is null)
@@ -65,39 +83,38 @@ namespace Labyrinth
             int y = 5 + int.Parse(responseCoordinates.Message.Substring(responseCoordinates.Message.IndexOf("Y:") + 2, responseCoordinates.Message.IndexOf(";Z") - responseCoordinates.Message.IndexOf("Y:") - 2));
 
             Console.WriteLine($"X: {x} Y: {y}");
-            _currentNode = new Node(x, y);
+            CurrentNode = new Node(x, y);
         }
 
         public void UpdateMap(ServerResponse[] responseMap)
         {
-            if (_currentNode is null)
-                throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+            //if (CurrentNode is null)
+            //    throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
             for (int y = 0; y < 11; y++)
                 for (int x = 0; x < 11; x++)
-                    MapGrid[_currentNode.Y + y - 5, _currentNode.X + x - 5] = responseMap[y].Message[x];
+                    MapGrid[CurrentNode.Y + y - 5, CurrentNode.X + x - 5] = responseMap[y].Message[x];
         }
 
         public void PrintMap()
         {
-            if (_currentNode is null)
-                throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+            //if (CurrentNode is null)
+            //    throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
             for (int y = 0; y < _height; y++)
                 for (int x = 0; x < _width; x++)
                     if (ReachedNodes.Contains(new Node(x, y)))
                         MapGrid[y, x] = '*';
 
-            MapGrid[_currentNode.Y, _currentNode.X] = 'P';
-
+            MapGrid[CurrentNode.Y, CurrentNode.X] = 'P';
 
             int width = Console.BufferWidth;
             int height = Console.WindowHeight - 3;
 
             StringBuilder stringBuilder = new StringBuilder();
-            for (int h = _currentNode.Y - height / 2; h < _currentNode.Y + height / 2; h++)
+            for (int h = CurrentNode.Y - height / 2; h < CurrentNode.Y + height / 2; h++)
             {
-                for (int w = _currentNode.X - width / 2; w < _currentNode.X + width / 2; w++)
+                for (int w = CurrentNode.X - width / 2; w < CurrentNode.X + width / 2; w++)
                 {
                     if (h < _height - 1 && w < _width - 1 && h > 0 && w > 0)
                         switch (MapGrid[h, w])
@@ -123,6 +140,7 @@ namespace Labyrinth
             }
 
             Console.WriteLine(stringBuilder.ToString());
+            MapGrid[CurrentNode.Y, CurrentNode.X] = '*';
         }
 
     }

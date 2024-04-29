@@ -102,6 +102,7 @@ class NetworkCommunication
             {
                 if (current.X + map.DIRS[i].X == next.X && current.Y + map.DIRS[i].Y == next.Y)
                 {
+                    map.ReachedNodes.Add(next);
                     dirs.Add(_dirs[i]);
                     current = next;
                 }

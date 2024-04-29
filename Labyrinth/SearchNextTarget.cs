@@ -3,7 +3,7 @@
 //Todo: we collect to much targets atm, fix it.
 class SearchNextTarget
 {
-    public Stack<Node> Next = new Stack<Node>();
+    private Stack<Node> _next = new Stack<Node>();
 
     private HashSet<Node> _reachable = new HashSet<Node>();
 
@@ -16,11 +16,28 @@ class SearchNextTarget
         _map = map;
     }
 
+
+    /// <summary>
+    /// This method returns a target with a unreached neigbor.
+    /// </summary>
+    public Node GetTarget(Node current, ref bool _gameWon)
+    {
+        CheckReachability(current);
+        CollectTargets(current, ref _gameWon);
+
+        Node target = _next.Pop();
+        while (!_map.HasUnreachedNeigbor(target))
+        {
+            target = _next.Pop();
+        }
+        return target;
+    }
+
     /// <summary>
     /// This method helps the class determine if the next target is reachable.
     /// Note: we search with this method to, if we found the target'T' and take there location and set a flag on true. 
     /// </summary>
-    public void CheckReachability(Node current)
+    private void CheckReachability(Node current)
     {
         HashSet<Node> reached = new HashSet<Node>();
         Queue<Node> queue = new Queue<Node>();
@@ -50,51 +67,25 @@ class SearchNextTarget
     /// <summary>
     /// This method iterates along the edge of the field of view once and put them in a Stack if they are reachable.
     /// </summary>
-    public void CollectTargets(Node currentNode, ref bool gameWon)
+    private void CollectTargets(Node currentNode, ref bool gameWon)
     {
+        Node[] searchDIRS = [new Node(-1, 0), new Node(0, -1), new Node(1, 0), new Node(0, 1)];
         if (_tTarget.tDetected && _reachable.Contains(currentNode))
         {
-            Next.Push(new Node(_tTarget.goal.X, _tTarget.goal.Y));
+            _next.Push(new Node(_tTarget.goal.X, _tTarget.goal.Y));
             gameWon = true;
             return;
         }
 
-        // + 5 to start in corner botton right.
-        int searchPointX = currentNode.X + 5;
-        int searchPointY = currentNode.Y + 5;
+        Node searchPoint = new Node(currentNode.X + 5, currentNode.Y + 5);
+        for(int s = 0; s < 4; s++)
+            for (int i = 0; i < 10; i++)
+            {
+                if (_reachable.Contains(searchPoint) && !_map.IsReached(searchPoint) && !_next.Contains(searchPoint) && _map.HasUndefineNeigbor(searchPoint))
+                    _next.Push(searchPoint);
 
-        for (int i = 0; i < 10; i++)
-        {
-            Node leftSearch = new Node(searchPointX, searchPointY);
-            if (_reachable.Contains(leftSearch) && _map.NoWall(leftSearch) && !_map.IsReached(leftSearch) && !Next.Contains(leftSearch))
-                Next.Push(leftSearch);
-            searchPointX--;
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            Node upSearch = new Node(searchPointX, searchPointY);
-            if (_reachable.Contains(upSearch) && _map.NoWall(upSearch) && !_map.IsReached(upSearch) && _map.InBounds(upSearch) && !Next.Contains(upSearch))
-                Next.Push(upSearch);
-            searchPointY--;
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            Node rightSearch = new Node(searchPointX, searchPointY);
-            if (_reachable.Contains(rightSearch) && _map.NoWall(rightSearch) && !_map.IsReached(rightSearch) && _map.InBounds(rightSearch) && !Next.Contains(rightSearch))
-                Next.Push(rightSearch);
-            searchPointX++;
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            Node downSearch = new Node(searchPointX, searchPointY);
-            if (_reachable.Contains(downSearch) && _map.NoWall(downSearch) && !_map.IsReached(downSearch) && _map.InBounds(downSearch) && !Next.Contains(downSearch))
-                Next.Push(downSearch);
-            searchPointY++;
-        }
-
+                searchPoint = new Node (searchPoint.X + searchDIRS[s].X, searchPoint.Y + searchDIRS[s].Y);
+            } 
     }
 
 }
