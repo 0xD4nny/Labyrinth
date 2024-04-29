@@ -11,7 +11,7 @@ namespace Labyrinth
 
         public readonly Node[] DIRS = [new Node(1, 0), new Node(0, 1), new Node(-1, 0), new Node(0, -1)];
 
-        public Node CurrentNode;
+        public Node? CurrentNode;
 
         public readonly char[,] MapGrid;
 
@@ -88,8 +88,8 @@ namespace Labyrinth
 
         public void UpdateMap(ServerResponse[] responseMap)
         {
-            //if (CurrentNode is null)
-            //    throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+            if (CurrentNode is null)
+                throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
             for (int y = 0; y < 11; y++)
                 for (int x = 0; x < 11; x++)
@@ -98,8 +98,8 @@ namespace Labyrinth
 
         public void PrintMap()
         {
-            //if (CurrentNode is null)
-            //    throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+            if (CurrentNode is null)
+                throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
             for (int y = 0; y < _height; y++)
                 for (int x = 0; x < _width; x++)

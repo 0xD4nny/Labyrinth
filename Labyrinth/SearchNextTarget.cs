@@ -1,10 +1,10 @@
 ﻿namespace Labyrinth;
 
-//Todo: we collect to much targets atm, fix it.
+//Todo: wir übersehen gelegentlich lücken weil wir zu weit springen die deswegen nicht abgespeichert werden können.
 class SearchNextTarget
 {
     private Stack<Node> _next = new Stack<Node>();
-
+    private Stack<Node> _breadKrumelPath = new Stack<Node>();
     private HashSet<Node> _reachable = new HashSet<Node>();
 
     private (bool tDetected, Node goal) _tTarget;
@@ -18,7 +18,7 @@ class SearchNextTarget
 
 
     /// <summary>
-    /// This method returns a target with a unreached neigbor.
+    /// This method returns a target with a undefine neigbor.
     /// </summary>
     public Node GetTarget(Node current, ref bool _gameWon)
     {
@@ -26,10 +26,13 @@ class SearchNextTarget
         CollectTargets(current, ref _gameWon);
 
         Node target = _next.Pop();
-        while (!_map.HasUnreachedNeigbor(target))
-        {
+
+        if (_gameWon is true)
+            return target;
+
+        while (!_map.HasUndefineNeigbor(target))
             target = _next.Pop();
-        }
+
         return target;
     }
 
