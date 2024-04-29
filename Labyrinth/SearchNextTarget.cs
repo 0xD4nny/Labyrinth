@@ -1,10 +1,10 @@
 ﻿namespace Labyrinth;
 
-//Todo: wir übersehen gelegentlich lücken weil wir zu weit springen die deswegen nicht abgespeichert werden können.
+//Todo: wir übersehen gelegentlich lücken weil wir zu weit springen oder durch zuvor aufgedeckte bereiche können sie nicht abgespeichert werden können.
 class SearchNextTarget
 {
     private Stack<Node> _next = new Stack<Node>();
-    private Stack<Node> _breadKrumelPath = new Stack<Node>();
+
     private HashSet<Node> _reachable = new HashSet<Node>();
 
     private (bool tDetected, Node goal) _tTarget;
@@ -30,7 +30,7 @@ class SearchNextTarget
         if (_gameWon is true)
             return target;
 
-        while (!_map.HasUndefineNeigbor(target))
+        while (!_map.HasUnreachedNeigbor(target))
             target = _next.Pop();
 
         return target;
@@ -55,7 +55,7 @@ class SearchNextTarget
             foreach (Node dir in _map.DIRS)
             {
                 Node next = new Node(current.X + dir.X, current.Y + dir.Y);
-                if (_map.InBounds(next) && !reached.Contains(next) && _map.NoWall(next) && _map.InPView(next, current))
+                if (!reached.Contains(next) && _map.NoWall(next) && _map.InPView(next, current))
                 {
                     queue.Enqueue(next);
                     reached.Add(next);
@@ -84,11 +84,11 @@ class SearchNextTarget
         for(int s = 0; s < 4; s++)
             for (int i = 0; i < 10; i++)
             {
-                if (_reachable.Contains(searchPoint) && !_map.IsReached(searchPoint) && !_next.Contains(searchPoint) && _map.HasUndefineNeigbor(searchPoint))
+                if (_reachable.Contains(searchPoint) && !_map.IsReached(searchPoint) && !_next.Contains(searchPoint))
                     _next.Push(searchPoint);
 
                 searchPoint = new Node (searchPoint.X + searchDIRS[s].X, searchPoint.Y + searchDIRS[s].Y);
-            } 
+            }
     }
 
 }
