@@ -53,13 +53,13 @@ namespace Labyrinth
         /// </summary>
         public bool InPView(Node node, Node currentNode)
         {
-            return currentNode.X - 5 < node.X && node.X < currentNode.X + 5 && currentNode.Y - 5 < node.Y && node.Y < currentNode.Y + 5;
+            return currentNode.X - 5 <= node.X && node.X <= currentNode.X + 5 && currentNode.Y - 5 <= node.Y && node.Y <= currentNode.Y + 5;
         }
 
         public bool HasUndefineNeigbor(Node node)
         {
             foreach (Node dir in DIRS)
-                if (MapGrid[node.Y + dir.Y, node.X + dir.X] == '\0')
+                if (MapGrid[node.Y + dir.Y, node.X + dir.X] is '\0')
                     return true;
 
             return false;
@@ -68,10 +68,10 @@ namespace Labyrinth
         public bool HasUnreachedNeigbor(Node node)
         {
             foreach (Node dir in DIRS)
-                if (!ReachedNodes.Contains(new Node(node.X + dir.X, node.Y + dir.Y)) && MapGrid[node.Y + dir.Y, node.X + dir.X] != 'W')
+                if (!ReachedNodes.Contains(new Node(node.X + dir.X, node.Y + dir.Y)) && MapGrid[node.Y + dir.Y, node.X + dir.X] is not 'W')
                     return true;
 
-            return true;
+            return false;
         }
 
         public void UpdateCurrentNode(ServerResponse responseCoordinates)
