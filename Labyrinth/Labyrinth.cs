@@ -41,8 +41,8 @@ class Labyrinth
 
     public void GameLoop()
     {
-        //if(_map.CurrentNode is null)
-        //    throw new NullReferenceException("_currentNode can't be null. Disconnected?");
+        if (_map.CurrentNode is null)
+            throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
         while (!_gameWon)
         {
