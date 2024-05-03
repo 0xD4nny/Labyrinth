@@ -1,6 +1,5 @@
 ﻿namespace Labyrinth;
 
-//Todo: wir übersehen gelegentlich lücken weil wir zu weit springen oder durch zuvor aufgedeckte bereiche können sie nicht abgespeichert werden können.
 class SearchNextTarget
 {
     private Stack<Node> _next = new Stack<Node>();
@@ -30,10 +29,50 @@ class SearchNextTarget
         if (_gameWon is true)
             return target;
 
-        while (!_map.HasUnreachedNeigbor(target))
+        while (!_map.HasUndefineNeigbor(target) && _next.Count > 0)
             target = _next.Pop();
 
+        if (_next.Count < 1)
+            return FloodToNextWithUndefineNeigbor(current);
+
         return target;
+    }
+
+    /// <summary>
+    /// This method is implemented to address a specific bug where targets that were previously uncovered but not collected due to visibility issues are not collected when they become reachable at a later time. 
+    /// The bug occurs when a previously visible area has not been accessed yet, leading to a situation where, even though it becomes accessible later, the target isn't collected as it should be. 
+    /// This method performs a flood fill from the current point until it reaches a node that has an undefined neighbor, specifically to handle this scenario.
+    /// </summary>
+    private Node FloodToNextWithUndefineNeigbor(Node current)
+    {
+        HashSet<Node> reached = new HashSet<Node>();
+        Queue<Node> queue = new Queue<Node>();
+        queue.Enqueue(current);
+
+        while (queue.Count > 0)
+        {
+            current = queue.Dequeue();
+            reached.Add(current);
+            _reachable.Add(current);
+
+            foreach (Node dir in _map.DIRS)
+            {
+                Node next = new Node(current.X + dir.X, current.Y + dir.Y);
+                if (!reached.Contains(next) && _map.NoWall(next) /*&& _map.InPView(next, current)*/)
+                {
+                    queue.Enqueue(next);
+                    reached.Add(next);
+                    _reachable.Add(next);
+                }
+                if (_map.InBounds(next) && _map.MapGrid[next.Y, next.X] is 'T')
+                    _tTarget = (true, new Node(next.X, next.Y));
+                if(_map.HasUndefineNeigbor(next) && _map.NoWall(next)) 
+                {
+                    return next;
+                }
+            }
+        }
+        throw new Exception("failed");
     }
 
     /// <summary>
@@ -55,7 +94,7 @@ class SearchNextTarget
             foreach (Node dir in _map.DIRS)
             {
                 Node next = new Node(current.X + dir.X, current.Y + dir.Y);
-                if (!reached.Contains(next) && _map.NoWall(next) && _map.InPView(next, current))
+                if (!reached.Contains(next) && _map.NoWall(next) /*&& _map.InPView(next, current)*/)
                 {
                     queue.Enqueue(next);
                     reached.Add(next);

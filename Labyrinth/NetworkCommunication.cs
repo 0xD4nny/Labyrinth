@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Diagnostics;
+using System.Net.Sockets;
 
 namespace Labyrinth;
 
@@ -71,6 +72,7 @@ class NetworkCommunication
         return _mapResponse;
     }
 
+
     /// <summary>
     /// This method is used when we find 'T' on the map and sit on it, to send the last command and read the final message with the winning text.
     /// </summary>
@@ -81,8 +83,30 @@ class NetworkCommunication
         Console.WriteLine(response.Message);
     }
 
+    /// <summary>
+    /// This method sends a list of commands to the server and then prints the updated map on the screen.
+    /// After this, it reads out every response for each command until the last one
+    /// </summary>
+    public void SendCommands(List<Node> bestPath, Map map)
+    {
+        List<string> commands = ParseNodeToCommand(bestPath, map);
 
-    #region Commands
+        int count = commands.Count;
+
+        if (count < 1)
+            throw new Exception("The overgiven list \"commands\" is empty");
+
+
+        foreach (string cmd in commands)
+            _writer.WriteLine(cmd);
+
+        Print();
+        
+        while (!(count-- == 1)) // Needs 75 - 80% off the total time from a run! 
+            _reader.ReadLine(); //
+
+    }
+
     /// <summary>
     /// This method is to parse a list of coordinates to a list of directions strings like "UP" and "DOWN".
     /// </summary>
@@ -111,70 +135,6 @@ class NetworkCommunication
         return dirs;
     }
 
-    /// <summary>
-    /// This method sends a list of commands to the server and then prints the updated map on the screen.
-    /// After this, it reads out every response for each command until the last one
-    /// </summary>
-    public void SendCommands(List<Node> path, Map map)
-    {
-        List<string> commands = ParseNodeToCommand(path, map);
-        int count = commands.Count;
-
-        if (count < 1)
-            throw new Exception("The overgiven list \"commands\" is empty");
-
-        foreach (string cmd in commands)
-            switch (cmd)
-            {
-                case "RIGHT":
-                    Right();
-                    break;
-                case "DOWN":
-                    Down();
-                    break;
-                case "LEFT":
-                    Left();
-                    break;
-                case "UP":
-                    Up();
-                    break;
-                case "ENTER":
-                    Enter();
-                    break;
-                default:
-                    throw new Exception("no valid command found");
-            }
-
-        Print();
-
-        while (!(count-- == 1))
-            _reader.ReadLine();
-    }
-
-    private void Right()
-    {
-        _writer.WriteLine("RIGHT");
-        _writer.Flush();
-    }
-
-    private void Down()
-    {
-        _writer.WriteLine("DOWN");
-        _writer.Flush();
-    }
-
-    private void Left()
-    {
-        _writer.WriteLine("LEFT");
-        _writer.Flush();
-    }
-
-    private void Up()
-    {
-        _writer.WriteLine("UP");
-        _writer.Flush();
-    }
-
     private void Enter()
     {
         _writer.WriteLine("ENTER");
@@ -186,6 +146,5 @@ class NetworkCommunication
         _writer.WriteLine("PRINT");
         _writer.Flush();
     }
-    #endregion
 
 }

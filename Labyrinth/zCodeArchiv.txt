@@ -48,3 +48,30 @@
                 throw new Exception("Wrong Key!");
         }
     }
+
+
+
+
+        private void Right()
+    {
+        _writer.WriteLine("RIGHT");
+
+    }
+
+    private void Down()
+    {
+        _writer.WriteLine("DOWN");
+
+    }
+
+    private void Left()
+    {
+        _writer.WriteLine("LEFT");
+
+    }
+
+    private void Up()
+    {
+        _writer.WriteLine("UP");
+
+    }
