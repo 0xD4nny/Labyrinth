@@ -6,9 +6,9 @@ class Program
     {
         //for (int i = 0; i < 50; i++)
         //{
-            Labyrinth labyrinth = new Labyrinth(512, 512);
+            Labyrinth labyrinth = new Labyrinth(32, 32);
             labyrinth.InitializeGame();
-            labyrinth.GameLoop();
+            labyrinth.BenchmarkGameLoop();
         //}
 
         //Console.WriteLine("Test was Succesfull.");
