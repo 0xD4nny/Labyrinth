@@ -1,7 +1,7 @@
 ﻿namespace Labyrinth;
 
 /// <summary>
-/// We use A* to find the best path from player to target
+/// We use A* to find the best path from start to goal
 /// </summary>
 class Pathfinding
 {

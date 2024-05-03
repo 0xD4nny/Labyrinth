@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 
 /// <summary>
 /// This class manages most other classes needed to run the Labyrinth automatically. It uses the SearchNextTarget class to find all possible exits from the player's view and stores them in a stack.
@@ -104,7 +105,6 @@ class Labyrinth
             sendCommands += stopwatch.ElapsedTicks;
             stopwatch.Reset();
 
-
             stopwatch.Start();
             _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());
             stopwatch.Stop();
@@ -137,7 +137,6 @@ class Labyrinth
         Console.WriteLine($"Update Current:\t{updateNode / 10000,10:N} ms\t {GetPercent(allTicks, updateNode),0:F2}%");
         Console.WriteLine($"Update Map:\t{updateMap / 10000,10:N} ms\t {GetPercent(allTicks, updateMap),0:F2}%");
         Console.WriteLine($"Print Map:\t{printMap / 10000,10:N} ms\t {GetPercent(allTicks, printMap),0:F2}%");
-        Console.WriteLine();
         Console.WriteLine();
         Console.WriteLine($"Runned Loops:\t\t{runningLoops}");
         Console.WriteLine($"Total sended Commands:\t{totalSendetCommands}");

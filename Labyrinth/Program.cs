@@ -4,14 +4,10 @@ class Program
 {
     static void Main()
     {
-        //for (int i = 0; i < 50; i++)
-        //{
-            Labyrinth labyrinth = new Labyrinth(32, 32);
-            labyrinth.InitializeGame();
-            labyrinth.BenchmarkGameLoop();
-        //}
-
-        //Console.WriteLine("Test was Succesfull.");
+        // you can sett a range from 32/32 to 4096/4096.
+        Labyrinth labyrinth = new Labyrinth(512, 512);
+        labyrinth.InitializeGame();
+        labyrinth.BenchmarkGameLoop();
     }
 
 }
