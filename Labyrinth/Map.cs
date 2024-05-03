@@ -65,15 +65,6 @@ namespace Labyrinth
             return false;
         }
 
-        public bool HasUnreachedNeigbor(Node node)
-        {
-            foreach (Node dir in DIRS)
-                if (!ReachedNodes.Contains(new Node(node.X + dir.X, node.Y + dir.Y)) && MapGrid[node.Y + dir.Y, node.X + dir.X] is not 'W')
-                    return true;
-
-            return false;
-        }
-
         public void UpdateCurrentNode(ServerResponse responseCoordinates)
         {
             if (responseCoordinates is null)

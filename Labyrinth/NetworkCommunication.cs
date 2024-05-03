@@ -101,8 +101,8 @@ class NetworkCommunication
             _writer.WriteLine(cmd);
 
         Print();
-        
-        while (!(count-- == 1)) // Needs 75 - 80% off the total time from a run! 
+
+        while (count-- > 1) // Needs 50 - 80% off the total time from the run! 
             _reader.ReadLine(); //
 
     }
@@ -146,5 +146,4 @@ class NetworkCommunication
         _writer.WriteLine("PRINT");
         _writer.Flush();
     }
-
 }
