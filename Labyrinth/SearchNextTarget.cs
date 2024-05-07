@@ -24,7 +24,10 @@ class SearchNextTarget
         CheckReachability(current);
         CollectTargets(current, ref _gameWon);
 
-        Node target = _next.Pop();
+        Node target = new Node(0,0);
+
+        if (_next.Count > 0)
+            target = _next.Pop();
 
         if (_gameWon is true)
             return target;

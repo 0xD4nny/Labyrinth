@@ -73,7 +73,6 @@ namespace Labyrinth
             int x = 5 + int.Parse(responseCoordinates.Message.Substring(responseCoordinates.Message.IndexOf("X:") + 2, responseCoordinates.Message.IndexOf(";Y") - responseCoordinates.Message.IndexOf("X:") - 2));
             int y = 5 + int.Parse(responseCoordinates.Message.Substring(responseCoordinates.Message.IndexOf("Y:") + 2, responseCoordinates.Message.IndexOf(";Z") - responseCoordinates.Message.IndexOf("Y:") - 2));
 
-            Console.WriteLine($"X: {x} Y: {y}");
             CurrentNode = new Node(x, y);
         }
 
@@ -129,7 +128,7 @@ namespace Labyrinth
 
                 stringBuilder.Append('\n');
             }
-
+            stringBuilder.AppendLine($"X:{CurrentNode.X},Y:{CurrentNode.Y}");
             Console.WriteLine(stringBuilder.ToString());
             MapGrid[CurrentNode.Y, CurrentNode.X] = '*';
         }

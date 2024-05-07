@@ -38,7 +38,8 @@ class Labyrinth
     {
         _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());
         _map.UpdateMap(_networkCommunication.GetMapResponse());
-        _map.PrintMap();
+        //_map.PrintMap();
+        Console.WriteLine("Run has started...");
     }
 
     public void GameLoop()
@@ -48,8 +49,8 @@ class Labyrinth
 
         while (!_gameWon)
         {
-            Console.SetCursorPosition(0, 0);
-            Console.CursorVisible = false;
+            //Console.SetCursorPosition(0, 0);
+            //Console.CursorVisible = false;
 
             Node target = _searchNextTarget.GetTarget(_map.CurrentNode, ref _gameWon);
             List<Node> bestPath = _aStar.Run(_map.CurrentNode, target);
@@ -57,7 +58,7 @@ class Labyrinth
  
             _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());
             _map.UpdateMap(_networkCommunication.GetMapResponse());
-            _map.PrintMap();
+            //_map.PrintMap();
         }
 
         _networkCommunication.GetWinnerMessage();
