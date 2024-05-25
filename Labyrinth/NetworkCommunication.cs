@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text;
 
 namespace Labyrinth;
 
@@ -47,8 +48,10 @@ class NetworkCommunication
         }
         while (response.Message != "READY.");
 
-        Enter(); // To get a Coordinate-Message
-        Print(); // To get a Map-Message
+        _writer.WriteLine("ENTER");
+        _writer.Flush();
+        _writer.WriteLine("PRINT");
+        _writer.Flush();
 
     }
 
@@ -78,9 +81,38 @@ class NetworkCommunication
     /// </summary>
     public void GetWinnerMessage()
     {
-        Enter();
+        _writer.WriteLine("ENTER");
+        _writer.Flush();
         ServerResponse? response = ServerResponse.ParseResponse(_reader.ReadLine());
         Console.WriteLine(response.Message);
+    }
+
+    /// <summary>
+    /// This method is to parse a list of coordinates to a list of directions strings like "UP" and "DOWN".
+    /// </summary>
+    private List<string> ParseNodeToCommand(List<Node> nodePath, Map map)
+    {
+        string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
+        List<string> stringPath = new List<string>();
+        Node current = nodePath[0];
+
+        nodePath.Remove(current);
+
+        while (nodePath.Count > 0)
+        {
+            Node next = nodePath[0];
+            nodePath.Remove(next);
+            for (int i = 0; i < 4; i++)
+            {
+                if (current.X + map.DIRS[i].X == next.X && current.Y + map.DIRS[i].Y == next.Y)
+                {
+                    map.ReachedNodes.Add(next);
+                    stringPath.Add(_dirs[i]);
+                    current = next;
+                }
+            }
+        }
+        return stringPath;
     }
 
     /// <summary>
@@ -89,61 +121,62 @@ class NetworkCommunication
     /// </summary>
     public void SendCommands(List<Node> bestPath, Map map)
     {
+        StringBuilder stringBuilder = new StringBuilder();
+
         List<string> commands = ParseNodeToCommand(bestPath, map);
 
         int count = commands.Count;
 
         if (count < 1)
-            throw new Exception("The overgiven list \"commands\" is empty");
+            throw new Exception("The given list \"commands\" is empty");
 
 
         foreach (string cmd in commands)
-            _writer.WriteLine(cmd);
+            stringBuilder.AppendLine(cmd);
 
-        Print();
-
-        while (count-- > 1) // Needs 50 - 80% off the total time from the run! 
-            _reader.ReadLine(); //
-
-    }
-
-    /// <summary>
-    /// This method is to parse a list of coordinates to a list of directions strings like "UP" and "DOWN".
-    /// </summary>
-    private List<string> ParseNodeToCommand(List<Node> path, Map map)
-    {
-        string[] _dirs = ["RIGHT", "DOWN", "LEFT", "UP"];
-        List<string> dirs = new List<string>();
-        Node current = path[0];
-
-        path.Remove(current);
-
-        while (path.Count > 0)
-        {
-            Node next = path[0];
-            path.Remove(next);
-            for (int i = 0; i < 4; i++)
-            {
-                if (current.X + map.DIRS[i].X == next.X && current.Y + map.DIRS[i].Y == next.Y)
-                {
-                    map.ReachedNodes.Add(next);
-                    dirs.Add(_dirs[i]);
-                    current = next;
-                }
-            }
-        }
-        return dirs;
-    }
-
-    private void Enter()
-    {
-        _writer.WriteLine("ENTER");
+        stringBuilder.Append("PRINT");
+        _writer.WriteLine(stringBuilder.ToString());
         _writer.Flush();
+        
+
+        while (count-- > 1)
+            _reader.ReadLine();
     }
 
-    private void Print()
+    public void BenchmarkSendCommands(List<Node> bestPath, Map map, ref long parseCoordsToCmd, ref long sendCmd, ref long readout)
     {
-        _writer.WriteLine("PRINT");
+        Stopwatch stopwatch = new Stopwatch();
+
+        stopwatch.Start();
+        StringBuilder stringBuilder = new StringBuilder();
+        List<string> commands = ParseNodeToCommand(bestPath, map);
+        int count = commands.Count;
+        
+        if (count < 1)
+            throw new Exception("The overgiven list \"commands\" is empty");
+
+        foreach (string cmd in commands)
+            stringBuilder.AppendLine(cmd);
+        
+        stringBuilder.Append("PRINT");
+        stopwatch.Stop();
+        parseCoordsToCmd += stopwatch.ElapsedTicks;
+        stopwatch.Reset();
+
+
+        stopwatch.Start();
+        _writer.WriteLine(stringBuilder.ToString());
         _writer.Flush();
+        stopwatch.Stop();
+        sendCmd += stopwatch.ElapsedTicks;
+        stopwatch.Reset();
+
+        stopwatch.Start();
+        while (count-- > 1)
+            _reader.ReadLine();
+        stopwatch.Stop();
+        readout += stopwatch.ElapsedTicks;
+        stopwatch.Stop();
+
     }
 }

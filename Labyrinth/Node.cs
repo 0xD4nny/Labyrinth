@@ -1,11 +1,13 @@
-﻿namespace Labyrinth;
+﻿using System.Runtime.InteropServices;
+
+namespace Labyrinth;
 
 class Node
 {
     public readonly int X, Y;
     public Node(int x, int y)
     {
-        X = x; 
+        X = x;
         Y = y;
     }
 
@@ -27,5 +29,4 @@ class Node
     {
         return HashCode.Combine(X, Y);
     }
-
 }

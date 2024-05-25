@@ -38,8 +38,8 @@ class Labyrinth
     {
         _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());
         _map.UpdateMap(_networkCommunication.GetMapResponse());
-        //_map.PrintMap();
         Console.WriteLine("Run has started...");
+        _map.PrintMap();
     }
 
     public void GameLoop()
@@ -49,8 +49,8 @@ class Labyrinth
 
         while (!_gameWon)
         {
-            //Console.SetCursorPosition(0, 0);
-            //Console.CursorVisible = false;
+            Console.SetCursorPosition(0, 0);
+            Console.CursorVisible = false;
 
             Node target = _searchNextTarget.GetTarget(_map.CurrentNode, ref _gameWon);
             List<Node> bestPath = _aStar.Run(_map.CurrentNode, target);
@@ -58,7 +58,7 @@ class Labyrinth
  
             _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());
             _map.UpdateMap(_networkCommunication.GetMapResponse());
-            //_map.PrintMap();
+            _map.PrintMap();
         }
 
         _networkCommunication.GetWinnerMessage();
@@ -68,25 +68,18 @@ class Labyrinth
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        long consoleSettings = 0, getTarget = 0, aStar = 0, sendCommands = 0, updateNode = 0, updateMap = 0, printMap = 0, allTicks = 0;
-        int totalSendetCommands = 0, runningLoops = 0;
+        int totalSendetCommands = 0, runningLoops = 0, floodFillUseCount = 0;
+        long allTicks = 0, getTarget = 0, aStar = 0, sendCommands = 0, updateNode = 0, updateMap = 0;
+        long allTicksGetTarget = 0, checkReachability = 0, collectTargets = 0, checkForUndefineNeigbor = 0, floodFillToNext = 0;
+        long allTicksNetworkCommunikation = 0, parseCoordsToCmd = 0, sendCmd = 0, readout = 0;
+
         if (_map.CurrentNode is null)
             throw new NullReferenceException("_currentNode can't be null. Disconnected?");
 
         while (!_gameWon)
         {
-            runningLoops++;
-
             stopwatch.Start();
-            Console.SetCursorPosition(0, 0);
-            Console.CursorVisible = false;
-            stopwatch.Stop();
-            consoleSettings += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
-
-
-            stopwatch.Start();
-            Node target = _searchNextTarget.GetTarget(_map.CurrentNode, ref _gameWon);
+            Node target = _searchNextTarget.BenchmarkGetTarget(_map.CurrentNode, ref _gameWon, ref checkReachability, ref collectTargets, ref checkForUndefineNeigbor, ref floodFillToNext,ref floodFillUseCount);
             stopwatch.Stop();
             getTarget += stopwatch.ElapsedTicks;
             stopwatch.Reset();
@@ -101,10 +94,11 @@ class Labyrinth
             totalSendetCommands += bestPath.Count;
 
             stopwatch.Start();
-            _networkCommunication.SendCommands(bestPath, _map);
+            _networkCommunication.BenchmarkSendCommands(bestPath, _map, ref parseCoordsToCmd, ref sendCmd, ref readout);
             stopwatch.Stop();
             sendCommands += stopwatch.ElapsedTicks;
             stopwatch.Reset();
+
 
             stopwatch.Start();
             _map.UpdateCurrentNode(_networkCommunication.GetCoordinateResponse());
@@ -112,41 +106,53 @@ class Labyrinth
             updateNode += stopwatch.ElapsedTicks;
             stopwatch.Reset();
 
+
             stopwatch.Start();
             _map.UpdateMap(_networkCommunication.GetMapResponse());
             stopwatch.Stop();
             updateMap += stopwatch.ElapsedTicks;
             stopwatch.Reset();
 
-            stopwatch.Start();
-            _map.PrintMap();
-            stopwatch.Stop();
-            printMap += stopwatch.ElapsedTicks;
-            stopwatch.Reset();
 
+            runningLoops++;
         }
 
         _networkCommunication.GetWinnerMessage();
 
-        allTicks = consoleSettings + getTarget + aStar + sendCommands + updateNode + updateMap + printMap;
-
-        Console.WriteLine($"Total Time:\t{allTicks / 10000,10:N} ms");
-        Console.WriteLine($"Console Settings:{consoleSettings / 10000,9:N} ms \t {GetPercent(allTicks, consoleSettings),0:F2}%");
-        Console.WriteLine($"Get Target:\t{getTarget / 10000,10:N} ms \t {GetPercent(allTicks, getTarget),0:F2}%");
-        Console.WriteLine($"A Star:\t\t{aStar / 10000,10:N} ms\t {GetPercent(allTicks, aStar),0:F2}%");
-        Console.WriteLine($"Send Commands:\t{sendCommands / 10000,10:N} ms\t {GetPercent(allTicks, sendCommands),0:F2}%");
-        Console.WriteLine($"Update Current:\t{updateNode / 10000,10:N} ms\t {GetPercent(allTicks, updateNode),0:F2}%");
-        Console.WriteLine($"Update Map:\t{updateMap / 10000,10:N} ms\t {GetPercent(allTicks, updateMap),0:F2}%");
-        Console.WriteLine($"Print Map:\t{printMap / 10000,10:N} ms\t {GetPercent(allTicks, printMap),0:F2}%");
+        allTicks = getTarget + aStar + sendCommands + updateNode + updateMap;
+        allTicksGetTarget = checkReachability + collectTargets + checkForUndefineNeigbor + floodFillToNext;
+        allTicksNetworkCommunikation = parseCoordsToCmd + sendCmd + readout;
         Console.WriteLine();
-        Console.WriteLine($"Runned Loops:\t\t{runningLoops}");
-        Console.WriteLine($"Total sended Commands:\t{totalSendetCommands}");
+        Console.WriteLine($"Total Time:\t\t{allTicks / 10_000,10} ms");
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine($"Get Target:\t\t{getTarget / 10_000,10} ms \t {GetPercent(allTicks, getTarget),0:F2}%");
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"└─ Check Reachability:\t{checkReachability / 10_000,10} ms \t {GetPercent(allTicksGetTarget,checkReachability),0:F2}%");
+        Console.WriteLine($"└─ Collect Targets:\t{collectTargets / 10_000,10} ms \t {GetPercent(allTicksGetTarget, collectTargets),0:F2}%");
+        Console.WriteLine($"└─ Check for undefine:\t{checkForUndefineNeigbor / 10_000,10} ms \t {GetPercent(allTicksGetTarget, checkForUndefineNeigbor),0:F2}%");
+        Console.WriteLine($"└─ Flood Fill To Next:\t{floodFillToNext / 10_000,10} ms \t {GetPercent(allTicksGetTarget, floodFillToNext),0:F2}%");
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine($"A Star Class:\t\t{aStar / 10_000,10} ms \t {GetPercent(allTicks, aStar),0:F2}%");
+        Console.WriteLine($"Send Commands:\t\t{sendCommands / 10_000,10} ms \t {GetPercent(allTicks, sendCommands),0:F2}%");
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"└─ ParseToCmd:\t\t{parseCoordsToCmd / 10_000,10} ms \t {GetPercent(allTicksNetworkCommunikation, parseCoordsToCmd),0:F2}%");
+        Console.WriteLine($"└─ Send commands:\t{sendCmd / 10_000,10} ms \t {GetPercent(allTicksNetworkCommunikation, sendCmd),0:F2}%");
+        Console.WriteLine($"└─ Read out:\t\t{readout / 10_000,10} ms \t {GetPercent(allTicksNetworkCommunikation, readout),0:F2}%");
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine($"Update Current:\t\t{updateNode / 10_000,10} ms \t {GetPercent(allTicks, updateNode),0:F2}%");
+        Console.WriteLine($"Update Map:\t\t{updateMap / 10_000,10} ms \t {GetPercent(allTicks, updateMap),0:F2}%");
+        Console.WriteLine();
+        Console.ForegroundColor= ConsoleColor.White;
+        Console.WriteLine($"Flood fill usecount:\t\t{floodFillUseCount}");
+        Console.WriteLine($"Runned Loops:\t\t\t{runningLoops}");
+        Console.WriteLine($"Total sended Commands:\t\t{totalSendetCommands}");
 
     }
 
     private decimal GetPercent(long allTickss, long item)
     {
-        return (decimal)((decimal)item / (decimal)allTickss) * 100;
+        return (decimal)((decimal)item / (decimal)allTickss) * 100m;
     }
 
 }
